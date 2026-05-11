@@ -1,0 +1,101 @@
+@import "tailwindcss";
+
+:root {
+  --turquoise: oklch(0.78 0.14 195);
+  --turquoise-glow: oklch(0.85 0.18 195);
+  --gold: oklch(0.82 0.14 85);
+  --sand: oklch(0.78 0.08 75);
+  --deep: oklch(0.10 0.02 240);
+  --background: oklch(0.16 0.03 220);
+  --foreground: oklch(0.98 0.01 90);
+
+  --color-turquoise: var(--turquoise);
+  --color-turquoise-glow: var(--turquoise-glow);
+  --color-gold: var(--gold);
+  --color-sand: var(--sand);
+  --color-deep: var(--deep);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: #000;
+}
+
+body {
+  font-family: 'Tajawal', 'Segoe UI', system-ui, sans-serif;
+  direction: rtl;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.gradient-text-gold {
+  background: linear-gradient(90deg, #f5d98a, #e8c55a, #f5d98a);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.gradient-text-aurora {
+  background: linear-gradient(90deg, #f5d98a, #aef3f0, #f5d98a);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  background-size: 200% auto;
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+.glass-btn {
+  background: rgba(255, 255, 255, 0.10);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.glass-btn:active {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+/* Hide scrollbar but keep scroll */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
