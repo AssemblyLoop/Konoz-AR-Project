@@ -514,7 +514,7 @@ function IntroScreen({ onDone }: { onDone: () => void }) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.6, duration: 0.8, ease: 'easeOut' }}
       >
-        شفاء مصر
+        كنوز
       </motion.h1>
 
       <motion.p
@@ -629,7 +629,7 @@ function WelcomeScreen({
           className="text-2xl font-bold text-center gradient-text-gold"
           style={{ fontFamily: "'Tajawal', system-ui, sans-serif" }}
         >
-          أهلاً بك في شفاء مصر
+          أهلاً بك في كنوز
         </h1>
 
         <p
