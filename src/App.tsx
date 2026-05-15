@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import type { ImageSegmenter, MPMask } from '@mediapipe/tasks-vision'
+import { createSelfieSegmenter } from './lib/selfieSegmenter'
 import {
   motion,
   AnimatePresence,
@@ -73,24 +75,9 @@ const LOCATIONS: Location[] = [
 
 const GLYPHS = ['𓂀', '𓁹', '𓋹', '𓊽', '𓆣']
 
-interface SegmentationResults {
-  image: CanvasImageSource
-  segmentationMask: CanvasImageSource
-}
-
-interface SelfieSegmentationApi {
-  setOptions(options: { modelSelection: 0 | 1 }): void
-  onResults(callback: (results: SegmentationResults) => void): void
-  send(input: { image: HTMLVideoElement }): Promise<void>
-  close?: () => void
-}
-
-declare global {
-  interface Window {
-    SelfieSegmentation?: new (config: {
-      locateFile: (file: string) => string
-    }) => SelfieSegmentationApi
-  }
+interface CompositeBuffers {
+  maskCanvas: HTMLCanvasElement
+  personCanvas: HTMLCanvasElement
 }
 
 function drawCoverImage(
@@ -170,6 +157,70 @@ function drawLocationBackground(
     return
   }
   drawMockBackground(ctx, width, height, location)
+}
+
+function ensureCompositeBuffers(
+  buffers: CompositeBuffers,
+  width: number,
+  height: number,
+) {
+  for (const canvas of [buffers.maskCanvas, buffers.personCanvas]) {
+    if (canvas.width !== width || canvas.height !== height) {
+      canvas.width = width
+      canvas.height = height
+    }
+  }
+}
+
+function renderFilteredFrame(
+  ctx: CanvasRenderingContext2D,
+  video: HTMLVideoElement,
+  confidenceMask: MPMask,
+  width: number,
+  height: number,
+  location: Location,
+  bgImage: HTMLImageElement | null,
+  facingMode: 'user' | 'environment',
+  buffers: CompositeBuffers,
+) {
+  ensureCompositeBuffers(buffers, width, height)
+
+  const maskCtx = buffers.maskCanvas.getContext('2d')
+  const personCtx = buffers.personCanvas.getContext('2d')
+  if (!maskCtx || !personCtx) return
+
+  const maskW = confidenceMask.width
+  const maskH = confidenceMask.height
+  const maskData = confidenceMask.getAsFloat32Array()
+  const maskImage = maskCtx.createImageData(maskW, maskH)
+  const pixels = maskImage.data
+  for (let i = 0; i < maskData.length; i += 1) {
+    const alpha = Math.round(maskData[i] * 255)
+    const offset = i * 4
+    pixels[offset] = 255
+    pixels[offset + 1] = 255
+    pixels[offset + 2] = 255
+    pixels[offset + 3] = alpha
+  }
+  maskCtx.putImageData(maskImage, 0, 0)
+
+  personCtx.clearRect(0, 0, width, height)
+  const mirror = facingMode === 'user'
+  if (mirror) {
+    personCtx.save()
+    personCtx.translate(width, 0)
+    personCtx.scale(-1, 1)
+  }
+  drawCoverImage(personCtx, video, width, height)
+  if (mirror) personCtx.restore()
+
+  personCtx.globalCompositeOperation = 'destination-in'
+  personCtx.drawImage(buffers.maskCanvas, 0, 0, maskW, maskH, 0, 0, width, height)
+  personCtx.globalCompositeOperation = 'source-over'
+
+  ctx.clearRect(0, 0, width, height)
+  drawLocationBackground(ctx, width, height, location, bgImage)
+  ctx.drawImage(buffers.personCanvas, 0, 0, width, height)
 }
 
 function getSecureContextMessage(): string | null {
@@ -1083,9 +1134,15 @@ function MainScreen({ username }: { username: string }) {
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const cameraCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
-  const segmentationRef = useRef<SelfieSegmentationApi | null>(null)
+  const segmentationRef = useRef<ImageSegmenter | null>(null)
   const animationFrameRef = useRef<number | null>(null)
   const processingRef = useRef(false)
+  const lastVideoTimeRef = useRef(-1)
+  const facingModeRef = useRef(facingMode)
+  const compositeBuffersRef = useRef<CompositeBuffers>({
+    maskCanvas: document.createElement('canvas'),
+    personCanvas: document.createElement('canvas'),
+  })
   const activeLocationRef = useRef(LOCATIONS[0])
   const activeBackgroundImageRef = useRef<HTMLImageElement | null>(null)
   const backgroundImageCacheRef = useRef<Record<string, HTMLImageElement>>({})
@@ -1119,9 +1176,14 @@ function MainScreen({ username }: { username: string }) {
   }, [capturedImage])
 
   useEffect(() => {
+    facingModeRef.current = facingMode
+  }, [facingMode])
+
+  useEffect(() => {
     activeLocationRef.current = LOCATIONS[activeFilter]
     activeBackgroundImageRef.current =
       backgroundImageCacheRef.current[LOCATIONS[activeFilter].imagePath] ?? null
+    lastVideoTimeRef.current = -1
   }, [activeFilter])
 
   useEffect(() => {
@@ -1133,6 +1195,7 @@ function MainScreen({ username }: { username: string }) {
       const cache = backgroundImageCacheRef.current
       if (cache[location.imagePath]) return
       const image = new Image()
+      image.crossOrigin = 'anonymous'
       image.src = location.imagePath
       image.onload = () => {
         cache[location.imagePath] = image
@@ -1146,72 +1209,28 @@ function MainScreen({ username }: { username: string }) {
   useEffect(() => {
     let cancelled = false
 
-    if (window.SelfieSegmentation) {
-      setSegmentationLoaded(true)
-      return () => {
-        cancelled = true
-      }
-    }
-
-    const script = document.createElement('script')
-    script.src = 'https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/selfie_segmentation.js'
-    script.async = true
-    script.onload = () => {
-      if (!cancelled) setSegmentationLoaded(true)
-    }
-    script.onerror = () => {
-      if (!cancelled) {
-        setCameraError('تعذر تحميل مكتبة المعالجة. تحقق من الاتصال بالإنترنت.')
-      }
-    }
-    document.body.appendChild(script)
+    void createSelfieSegmenter()
+      .then((segmenter) => {
+        if (cancelled) {
+          segmenter.close()
+          return
+        }
+        segmentationRef.current = segmenter
+        setSegmentationLoaded(true)
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setCameraError('تعذر تحميل مكتبة إزالة الخلفية. تحقق من الاتصال بالإنترنت.')
+        }
+      })
 
     return () => {
       cancelled = true
+      segmentationRef.current?.close()
+      segmentationRef.current = null
+      setSegmentationLoaded(false)
     }
   }, [])
-
-  useEffect(() => {
-    if (!segmentationLoaded || !window.SelfieSegmentation) return
-
-    const segmenter = new window.SelfieSegmentation({
-      locateFile: (file) =>
-        `https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/${file}`,
-    })
-
-    segmenter.setOptions({ modelSelection: 1 })
-    segmenter.onResults((results) => {
-      if (capturedImageRef.current) return
-
-      const canvas = cameraCanvasRef.current
-      const ctx = canvas?.getContext('2d')
-      if (!canvas || !ctx) return
-
-      const width = canvas.width
-      const height = canvas.height
-
-      ctx.clearRect(0, 0, width, height)
-      drawLocationBackground(
-        ctx,
-        width,
-        height,
-        activeLocationRef.current,
-        activeBackgroundImageRef.current,
-      )
-
-      ctx.save()
-      drawCoverImage(ctx, results.segmentationMask, width, height)
-      ctx.globalCompositeOperation = 'source-in'
-      drawCoverImage(ctx, results.image, width, height)
-      ctx.restore()
-    })
-
-    segmentationRef.current = segmenter
-    return () => {
-      segmentationRef.current?.close?.()
-      segmentationRef.current = null
-    }
-  }, [segmentationLoaded])
 
   const startCamera = useCallback(async () => {
     const insecureMessage = getSecureContextMessage()
@@ -1270,28 +1289,60 @@ function MainScreen({ username }: { username: string }) {
   }, [facingMode, startCamera, cameraRequested])
 
   useEffect(() => {
+    if (!cameraReady || !segmentationLoaded) return
+
     const loop = () => {
+      animationFrameRef.current = window.requestAnimationFrame(loop)
+
       if (
-        !cameraReady ||
+        capturedImageRef.current ||
+        processingRef.current ||
         !segmentationRef.current ||
         !videoRef.current ||
-        capturedImage ||
-        processingRef.current
+        !cameraCanvasRef.current
       ) {
-        animationFrameRef.current = window.requestAnimationFrame(loop)
         return
       }
 
+      const video = videoRef.current
+      const canvas = cameraCanvasRef.current
+      const segmenter = segmentationRef.current
+
+      if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA || !video.videoWidth) {
+        return
+      }
+
+      const currentTime = video.currentTime
+      if (currentTime === lastVideoTimeRef.current) return
+      lastVideoTimeRef.current = currentTime
+
       processingRef.current = true
-      void segmentationRef.current
-        .send({ image: videoRef.current })
-        .catch(() => {
-          setCameraError((current) => current ?? 'تعذر تحديث الفلتر المباشر.')
-        })
-        .finally(() => {
-          processingRef.current = false
-          animationFrameRef.current = window.requestAnimationFrame(loop)
-        })
+      try {
+        const result = segmenter.segmentForVideo(video, performance.now())
+        const mask = result.confidenceMasks?.[0]
+        if (!mask) return
+
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return
+
+        renderFilteredFrame(
+          ctx,
+          video,
+          mask,
+          canvas.width,
+          canvas.height,
+          activeLocationRef.current,
+          activeBackgroundImageRef.current,
+          facingModeRef.current,
+          compositeBuffersRef.current,
+        )
+
+        result.confidenceMasks?.forEach((entry) => entry.close())
+      } catch {
+        setCameraError((current) => current ?? 'تعذر تحديث الفلتر المباشر.')
+      } finally {
+        processingRef.current = false
+      }
     }
 
     animationFrameRef.current = window.requestAnimationFrame(loop)
@@ -1301,7 +1352,7 @@ function MainScreen({ username }: { username: string }) {
         animationFrameRef.current = null
       }
     }
-  }, [cameraReady, capturedImage])
+  }, [cameraReady, segmentationLoaded, capturedImage])
 
   useEffect(() => {
     return () => {
@@ -1334,12 +1385,14 @@ function MainScreen({ username }: { username: string }) {
         muted
         autoPlay
         style={{
-          position: 'absolute',
-          width: '1px',
-          height: '1px',
-          clip: 'rect(0,0,0,0)',
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: 640,
+          height: 640,
+          opacity: 0,
           pointerEvents: 'none',
-          zIndex: -9999,
+          zIndex: -1,
         }}
         aria-hidden="true"
       />
@@ -1490,7 +1543,7 @@ function MainScreen({ username }: { username: string }) {
               <div style={{ fontSize: 11, opacity: 0.9 }}>{activeLocation.blurb}</div>
             </div>
 
-            {(cameraError || !cameraReady) && (
+            {(cameraError || !cameraReady || !segmentationLoaded) && (
               <motion.div
                 style={{
                   position: 'absolute',
@@ -1510,18 +1563,24 @@ function MainScreen({ username }: { username: string }) {
               >
                 <p style={{ margin: 0 }}>
                   {cameraError ??
-                    (cameraRequested ? 'جاري تشغيل الكاميرا...' : 'اضغط لتشغيل الكاميرا واستخدام الفلاتر')}
+                    (!segmentationLoaded
+                      ? 'جاري تحميل فلاتر إزالة الخلفية...'
+                      : cameraRequested
+                      ? 'جاري تشغيل الكاميرا...'
+                      : 'اضغط لتشغيل الكاميرا واستخدام الفلاتر')}
                 </p>
-                {!cameraReady && (
+                {((!cameraReady && !cameraError) || cameraError) && (
                   <motion.button
                     type="button"
                     onClick={handleStartCamera}
+                    disabled={!segmentationLoaded && !cameraError}
                     whileTap={{ scale: 0.96 }}
                     style={{
                       border: 'none',
                       borderRadius: 9999,
                       padding: '10px 20px',
-                      cursor: 'pointer',
+                      cursor: !segmentationLoaded && !cameraError ? 'not-allowed' : 'pointer',
+                      opacity: !segmentationLoaded && !cameraError ? 0.6 : 1,
                       fontFamily: "'Tajawal', system-ui, sans-serif",
                       fontSize: 14,
                       fontWeight: 700,
@@ -1643,7 +1702,12 @@ function MainScreen({ username }: { username: string }) {
         {/* Shutter */}
         <motion.button
           onClick={handleShutter}
-          disabled={!cameraReady || Boolean(cameraError) || Boolean(capturedImage)}
+          disabled={
+            !cameraReady ||
+            !segmentationLoaded ||
+            Boolean(cameraError) ||
+            Boolean(capturedImage)
+          }
           aria-label="التقاط صورة"
           style={{
             position: 'relative',
