@@ -7,8 +7,6 @@ import {
 } from 'framer-motion'
 import {
   Settings,
-  Zap,
-  ZapOff,
   RefreshCcw,
   Download,
   Eye,
@@ -23,18 +21,230 @@ type Stage = 'intro' | 'welcome' | 'personal' | 'main'
 interface Location {
   name: string
   hue: number
+  blurb: string
+  palette: [string, string, string]
+  imagePath: string
 }
 
 const LOCATIONS: Location[] = [
-  { name: 'سيوة', hue: 190 },
-  { name: 'سفاجا', hue: 25 },
-  { name: 'أسوان', hue: 45 },
-  { name: 'الواحات', hue: 80 },
-  { name: 'البحر الأحمر', hue: 210 },
-  { name: 'عيون موسى', hue: 165 },
+  {
+    name: 'سيوة',
+    hue: 190,
+    blurb: 'واحة سيوة تشتهر بالعيون الكبريتية والهدوء العلاجي في قلب الصحراء.',
+    palette: ['#8f9399', '#646b73', '#c0c5cb'],
+    imagePath: '/assets/images/enhanced_image_1.jpg',
+  },
+  {
+    name: 'سفاجا',
+    hue: 25,
+    blurb: 'سفاجا وجهة علاجية عالمية برمالها السوداء ومياهها الغنية بالأملاح.',
+    palette: ['#e3b17e', '#8f5533', '#f1d6b5'],
+    imagePath: '/assets/images/enhanced_image_2.jpg',
+  },
+  {
+    name: 'أسوان',
+    hue: 45,
+    blurb: 'أسوان تمتاز بدفء المناخ والبيئة النيلية الهادئة المناسبة للاستشفاء.',
+    palette: ['#e4c16f', '#7f5b1f', '#f6e3b1'],
+    imagePath: '/assets/images/enhanced_image_3.jpg',
+  },
+  {
+    name: 'الواحات',
+    hue: 80,
+    blurb: 'الواحات المصرية تجمع بين الهواء النقي والطبيعة الصحراوية المميزة.',
+    palette: ['#b9d77f', '#49622a', '#d8edb0'],
+    imagePath: '/assets/images/enhanced_image_4.jpg',
+  },
+  {
+    name: 'البحر الأحمر',
+    hue: 210,
+    blurb: 'البحر الأحمر يقدم طقساً مشمساً ومياهاً صافية تساعد على الاسترخاء.',
+    palette: ['#74a9e8', '#1c3f73', '#b9d8f8'],
+    imagePath: '/assets/images/enhanced_image_5.jpg',
+  },
+  {
+    name: 'عيون موسى',
+    hue: 165,
+    blurb: 'عيون موسى منطقة تاريخية وينابيع طبيعية مرتبطة بالاستشفاء والراحة.',
+    palette: ['#79d9c5', '#1e6c61', '#baf1e7'],
+    imagePath: '/assets/images/enhanced_image_6.jpg',
+  },
 ]
 
 const GLYPHS = ['𓂀', '𓁹', '𓋹', '𓊽', '𓆣']
+
+interface SegmentationResults {
+  image: CanvasImageSource
+  segmentationMask: CanvasImageSource
+}
+
+interface SelfieSegmentationApi {
+  setOptions(options: { modelSelection: 0 | 1 }): void
+  onResults(callback: (results: SegmentationResults) => void): void
+  send(input: { image: HTMLVideoElement }): Promise<void>
+  close?: () => void
+}
+
+declare global {
+  interface Window {
+    SelfieSegmentation?: new (config: {
+      locateFile: (file: string) => string
+    }) => SelfieSegmentationApi
+  }
+}
+
+function drawCoverImage(
+  ctx: CanvasRenderingContext2D,
+  source: CanvasImageSource,
+  width: number,
+  height: number,
+) {
+  const sourceWidth =
+    source instanceof HTMLVideoElement
+      ? source.videoWidth
+      : source instanceof HTMLImageElement
+      ? source.naturalWidth
+      : source instanceof HTMLCanvasElement
+      ? source.width
+      : source instanceof ImageBitmap
+      ? source.width
+      : width
+
+  const sourceHeight =
+    source instanceof HTMLVideoElement
+      ? source.videoHeight
+      : source instanceof HTMLImageElement
+      ? source.naturalHeight
+      : source instanceof HTMLCanvasElement
+      ? source.height
+      : source instanceof ImageBitmap
+      ? source.height
+      : height
+
+  if (!sourceWidth || !sourceHeight) return
+
+  const square = Math.min(sourceWidth, sourceHeight)
+  const sx = (sourceWidth - square) / 2
+  const sy = (sourceHeight - square) / 2
+  ctx.drawImage(source, sx, sy, square, square, 0, 0, width, height)
+}
+
+function drawMockBackground(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  location: Location,
+) {
+  const [start, mid, end] = location.palette
+  const gradient = ctx.createLinearGradient(0, 0, width, height)
+  gradient.addColorStop(0, start)
+  gradient.addColorStop(0.5, mid)
+  gradient.addColorStop(1, end)
+
+  ctx.fillStyle = gradient
+  ctx.fillRect(0, 0, width, height)
+
+  ctx.fillStyle = 'rgba(255,255,255,0.12)'
+  for (let i = 0; i < 7; i += 1) {
+    const circleSize = width * (0.08 + i * 0.03)
+    ctx.beginPath()
+    ctx.arc(width * 0.15 + i * (width * 0.12), height * 0.18, circleSize, 0, Math.PI * 2)
+    ctx.fill()
+  }
+
+  ctx.fillStyle = 'rgba(0,0,0,0.15)'
+  ctx.fillRect(0, height * 0.72, width, height * 0.28)
+}
+
+function drawLocationBackground(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  location: Location,
+  image: HTMLImageElement | null,
+) {
+  if (image) {
+    drawCoverImage(ctx, image, width, height)
+    ctx.fillStyle = 'rgba(0,0,0,0.18)'
+    ctx.fillRect(0, 0, width, height)
+    return
+  }
+  drawMockBackground(ctx, width, height, location)
+}
+
+function getSecureContextMessage(): string | null {
+  if (window.isSecureContext) return null
+  return `الكاميرا تتطلب HTTPS. من iPhone افتح: https://${window.location.host}`
+}
+
+async function requestCameraStream(
+  facingMode: 'user' | 'environment',
+): Promise<MediaStream> {
+  if (!window.isSecureContext) {
+    throw new Error('SECURE_CONTEXT_REQUIRED')
+  }
+
+  const constraints: MediaStreamConstraints = {
+    video: {
+      facingMode: facingMode === 'environment' ? { ideal: 'environment' } : { ideal: 'user' },
+      width: { ideal: 640, min: 320 },
+      height: { ideal: 640, min: 320 },
+      frameRate: { ideal: 24, max: 30 },
+    },
+    audio: false,
+  }
+
+  const simpleConstraints: MediaStreamConstraints = {
+    video: { facingMode },
+    audio: false,
+  }
+
+  if (navigator.mediaDevices?.getUserMedia) {
+    try {
+      return await navigator.mediaDevices.getUserMedia(constraints)
+    } catch {
+      return await navigator.mediaDevices.getUserMedia(simpleConstraints)
+    }
+  }
+
+  type LegacyGetUserMedia = (
+    constraints: MediaStreamConstraints,
+    onSuccess: (stream: MediaStream) => void,
+    onError: (error: Error) => void,
+  ) => void
+
+  const legacyGetUserMedia =
+    (navigator as Navigator & { webkitGetUserMedia?: LegacyGetUserMedia }).webkitGetUserMedia ??
+    (navigator as Navigator & { mozGetUserMedia?: LegacyGetUserMedia }).mozGetUserMedia
+
+  if (legacyGetUserMedia) {
+    return new Promise<MediaStream>((resolve, reject) => {
+      legacyGetUserMedia.call(navigator, simpleConstraints, resolve, reject)
+    })
+  }
+
+  throw new Error('getUserMedia not available')
+}
+
+function mapCameraError(error: unknown): string {
+  const err = error as { name?: string; message?: string }
+  if (err.message === 'SECURE_CONTEXT_REQUIRED') {
+    return getSecureContextMessage() ?? 'الكاميرا تتطلب اتصالاً آمناً (HTTPS).'
+  }
+  if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+    return 'يرجى السماح بوصول التطبيق للكاميرا من إعدادات Safari.'
+  }
+  if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+    return 'لم يتم العثور على كاميرا متاحة على جهازك.'
+  }
+  if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+    return 'الكاميرا قيد الاستخدام. أغلق التطبيقات الأخرى وجرب مجدداً.'
+  }
+  if (err.name === 'OverconstrainedError') {
+    return 'الكاميرا لا تدعم الإعدادات المطلوبة. جرّب قلب الكاميرا.'
+  }
+  return err.message ? `خطأ: ${err.message}` : 'فشل الوصول للكاميرا.'
+}
 
 // ─────────────────────────────────────────────
 // Particles
@@ -304,7 +514,7 @@ function ScanFrame() {
   return (
     <div
       className="relative"
-      style={{ width: 256, height: 256 }}
+      style={{ width: '100%', height: '100%' }}
       aria-label="إطار المسح الضوئي"
     >
       {/* Outer glow */}
@@ -861,24 +1071,245 @@ function PersonalLoading({
 // ─────────────────────────────────────────────
 function MainScreen({ username }: { username: string }) {
   const [activeFilter, setActiveFilter] = useState(0)
-  const [flash, setFlash] = useState(false)
   const [shutterActive, setShutterActive] = useState(false)
+  const [capturedImage, setCapturedImage] = useState<string | null>(null)
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user')
+  const [cameraReady, setCameraReady] = useState(false)
+  const [cameraError, setCameraError] = useState<string | null>(null)
+  const [cameraRequested, setCameraRequested] = useState(false)
+  const [segmentationLoaded, setSegmentationLoaded] = useState(false)
   const [showFlash, setShowFlash] = useState(false)
   const controls = useAnimation()
+  const videoRef = useRef<HTMLVideoElement | null>(null)
+  const cameraCanvasRef = useRef<HTMLCanvasElement | null>(null)
+  const streamRef = useRef<MediaStream | null>(null)
+  const segmentationRef = useRef<SelfieSegmentationApi | null>(null)
+  const animationFrameRef = useRef<number | null>(null)
+  const processingRef = useRef(false)
+  const activeLocationRef = useRef(LOCATIONS[0])
+  const activeBackgroundImageRef = useRef<HTMLImageElement | null>(null)
+  const backgroundImageCacheRef = useRef<Record<string, HTMLImageElement>>({})
+  const capturedImageRef = useRef<string | null>(null)
   const shutterRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const handleShutter = useCallback(() => {
-    if (shutterActive) return
+    if (shutterActive || !cameraCanvasRef.current) return
     setShutterActive(true)
     setShowFlash(true)
+    setCapturedImage(cameraCanvasRef.current.toDataURL('image/png'))
     void controls.start({ scale: [1, 0.9, 1.05, 1] })
     setTimeout(() => setShowFlash(false), 250)
     shutterRef.current = setTimeout(() => setShutterActive(false), 600)
   }, [shutterActive, controls])
 
+  const handleRetakeOrFlip = useCallback(() => {
+    if (capturedImage) {
+      setCapturedImage(null)
+      return
+    }
+    setFacingMode((prev) => (prev === 'user' ? 'environment' : 'user'))
+  }, [capturedImage])
+
+  const handleSave = useCallback(() => {
+    if (!capturedImage) return
+    const link = document.createElement('a')
+    link.href = capturedImage
+    link.download = `konoz-filter-${Date.now()}.png`
+    link.click()
+  }, [capturedImage])
+
+  useEffect(() => {
+    activeLocationRef.current = LOCATIONS[activeFilter]
+    activeBackgroundImageRef.current =
+      backgroundImageCacheRef.current[LOCATIONS[activeFilter].imagePath] ?? null
+  }, [activeFilter])
+
+  useEffect(() => {
+    capturedImageRef.current = capturedImage
+  }, [capturedImage])
+
+  useEffect(() => {
+    LOCATIONS.forEach((location) => {
+      const cache = backgroundImageCacheRef.current
+      if (cache[location.imagePath]) return
+      const image = new Image()
+      image.src = location.imagePath
+      image.onload = () => {
+        cache[location.imagePath] = image
+        if (activeLocationRef.current.imagePath === location.imagePath) {
+          activeBackgroundImageRef.current = image
+        }
+      }
+    })
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+
+    if (window.SelfieSegmentation) {
+      setSegmentationLoaded(true)
+      return () => {
+        cancelled = true
+      }
+    }
+
+    const script = document.createElement('script')
+    script.src = 'https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/selfie_segmentation.js'
+    script.async = true
+    script.onload = () => {
+      if (!cancelled) setSegmentationLoaded(true)
+    }
+    script.onerror = () => {
+      if (!cancelled) {
+        setCameraError('تعذر تحميل مكتبة المعالجة. تحقق من الاتصال بالإنترنت.')
+      }
+    }
+    document.body.appendChild(script)
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!segmentationLoaded || !window.SelfieSegmentation) return
+
+    const segmenter = new window.SelfieSegmentation({
+      locateFile: (file) =>
+        `https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/${file}`,
+    })
+
+    segmenter.setOptions({ modelSelection: 1 })
+    segmenter.onResults((results) => {
+      if (capturedImageRef.current) return
+
+      const canvas = cameraCanvasRef.current
+      const ctx = canvas?.getContext('2d')
+      if (!canvas || !ctx) return
+
+      const width = canvas.width
+      const height = canvas.height
+
+      ctx.clearRect(0, 0, width, height)
+      drawLocationBackground(
+        ctx,
+        width,
+        height,
+        activeLocationRef.current,
+        activeBackgroundImageRef.current,
+      )
+
+      ctx.save()
+      drawCoverImage(ctx, results.segmentationMask, width, height)
+      ctx.globalCompositeOperation = 'source-in'
+      drawCoverImage(ctx, results.image, width, height)
+      ctx.restore()
+    })
+
+    segmentationRef.current = segmenter
+    return () => {
+      segmentationRef.current?.close?.()
+      segmentationRef.current = null
+    }
+  }, [segmentationLoaded])
+
+  const startCamera = useCallback(async () => {
+    const insecureMessage = getSecureContextMessage()
+    if (insecureMessage) {
+      setCameraError(insecureMessage)
+      setCameraReady(false)
+      return
+    }
+
+    streamRef.current?.getTracks().forEach((track) => track.stop())
+    setCameraReady(false)
+    setCameraError(null)
+
+    try {
+      const stream = await requestCameraStream(facingMode)
+      const video = videoRef.current
+      if (!video) {
+        stream.getTracks().forEach((track) => track.stop())
+        return
+      }
+
+      streamRef.current = stream
+      video.srcObject = stream
+      video.setAttribute('playsinline', 'true')
+      video.setAttribute('webkit-playsinline', 'true')
+      video.muted = true
+      video.autoplay = true
+
+      await video.play()
+      setCameraReady(true)
+    } catch (error) {
+      setCameraError(mapCameraError(error))
+      setCameraReady(false)
+    }
+  }, [facingMode])
+
+  const handleStartCamera = useCallback(() => {
+    setCameraRequested(true)
+  }, [])
+
+  useEffect(() => {
+    const insecureMessage = getSecureContextMessage()
+    if (insecureMessage) setCameraError(insecureMessage)
+  }, [])
+
+  useEffect(() => {
+    if (!cameraRequested) return
+
+    void startCamera()
+
+    return () => {
+      streamRef.current?.getTracks().forEach((track) => track.stop())
+      streamRef.current = null
+      setCameraReady(false)
+    }
+  }, [facingMode, startCamera, cameraRequested])
+
+  useEffect(() => {
+    const loop = () => {
+      if (
+        !cameraReady ||
+        !segmentationRef.current ||
+        !videoRef.current ||
+        capturedImage ||
+        processingRef.current
+      ) {
+        animationFrameRef.current = window.requestAnimationFrame(loop)
+        return
+      }
+
+      processingRef.current = true
+      void segmentationRef.current
+        .send({ image: videoRef.current })
+        .catch(() => {
+          setCameraError((current) => current ?? 'تعذر تحديث الفلتر المباشر.')
+        })
+        .finally(() => {
+          processingRef.current = false
+          animationFrameRef.current = window.requestAnimationFrame(loop)
+        })
+    }
+
+    animationFrameRef.current = window.requestAnimationFrame(loop)
+    return () => {
+      if (animationFrameRef.current) {
+        window.cancelAnimationFrame(animationFrameRef.current)
+        animationFrameRef.current = null
+      }
+    }
+  }, [cameraReady, capturedImage])
+
   useEffect(() => {
     return () => {
       if (shutterRef.current) clearTimeout(shutterRef.current)
+      if (animationFrameRef.current) {
+        window.cancelAnimationFrame(animationFrameRef.current)
+      }
+      streamRef.current?.getTracks().forEach((track) => track.stop())
     }
   }, [])
 
@@ -894,8 +1325,24 @@ function MainScreen({ username }: { username: string }) {
       exit="exit"
       aria-label={`الكاميرا الرئيسية — ${activeLocation?.name ?? ''}`}
     >
-      {/* Camera feed */}
+      {/* Decorative background */}
       <CameraFeed />
+
+      <video
+        ref={videoRef}
+        playsInline
+        muted
+        autoPlay
+        style={{
+          position: 'absolute',
+          width: '1px',
+          height: '1px',
+          clip: 'rect(0,0,0,0)',
+          pointerEvents: 'none',
+          zIndex: -9999,
+        }}
+        aria-hidden="true"
+      />
 
       {/* Flash overlay */}
       <AnimatePresence>
@@ -990,26 +1437,128 @@ function MainScreen({ username }: { username: string }) {
         </span>
       </motion.div>
 
-      {/* ScanFrame centered */}
-      <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
-        <ScanFrame />
+      {/* Camera square */}
+      <div className="absolute inset-0 z-10 flex items-center justify-center px-3" style={{ top: 60, bottom: 200 }}>
+        <div
+          style={{
+            width: 'min(90vw, 320px)',
+            aspectRatio: '1 / 1',
+            maxHeight: 'calc(100vh - 260px)',
+            position: 'relative',
+          }}
+        >
+          <div
+            className="glass"
+            style={{
+              position: 'absolute',
+              inset: 0,
+              overflow: 'hidden',
+              borderRadius: 28,
+              boxShadow: '0 0 40px oklch(0.78 0.14 195 / 0.25)',
+            }}
+          >
+            {capturedImage ? (
+              <img
+                src={capturedImage}
+                alt={`صورة ملتقطة في فلتر ${activeLocation.name}`}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            ) : (
+              <canvas
+                ref={cameraCanvasRef}
+                width={640}
+                height={640}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                aria-label="معاينة الكاميرا"
+              />
+            )}
+
+            <div
+              style={{
+                position: 'absolute',
+                top: 12,
+                left: 12,
+                right: 12,
+                background: 'rgba(110,110,110,0.78)',
+                border: '1px solid rgba(255,255,255,0.25)',
+                borderRadius: 12,
+                padding: '8px 10px',
+                color: '#fff',
+              }}
+            >
+              <div style={{ fontSize: 13, fontWeight: 700 }}>{activeLocation.name}</div>
+              <div style={{ fontSize: 11, opacity: 0.9 }}>{activeLocation.blurb}</div>
+            </div>
+
+            {(cameraError || !cameraReady) && (
+              <motion.div
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 14,
+                  textAlign: 'center',
+                  padding: 20,
+                  background: 'rgba(0,0,0,0.55)',
+                  color: 'rgba(255,255,255,0.9)',
+                  fontSize: 13,
+                  lineHeight: 1.6,
+                }}
+              >
+                <p style={{ margin: 0 }}>
+                  {cameraError ??
+                    (cameraRequested ? 'جاري تشغيل الكاميرا...' : 'اضغط لتشغيل الكاميرا واستخدام الفلاتر')}
+                </p>
+                {!cameraReady && (
+                  <motion.button
+                    type="button"
+                    onClick={handleStartCamera}
+                    whileTap={{ scale: 0.96 }}
+                    style={{
+                      border: 'none',
+                      borderRadius: 9999,
+                      padding: '10px 20px',
+                      cursor: 'pointer',
+                      fontFamily: "'Tajawal', system-ui, sans-serif",
+                      fontSize: 14,
+                      fontWeight: 700,
+                      color: '#0a1a1a',
+                      background:
+                        'linear-gradient(135deg, oklch(0.78 0.14 195), oklch(0.82 0.14 85))',
+                      boxShadow: '0 0 20px oklch(0.78 0.14 195 / 0.35)',
+                    }}
+                  >
+                    {cameraError ? 'إعادة المحاولة' : 'تشغيل الكاميرا'}
+                  </motion.button>
+                )}
+              </motion.div>
+            )}
+          </div>
+
+          <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+            <ScanFrame />
+          </div>
+        </div>
       </div>
 
       {/* Filter carousel */}
       <div
         className="absolute z-20 left-0 right-0"
-        style={{ bottom: 130 }}
+        style={{ bottom: 104 }}
         aria-label="فلاتر المواقع"
       >
         <div
-          className="flex gap-4 no-scrollbar"
+          className="flex gap-2 no-scrollbar"
           style={{
             overflowX: 'auto',
             overflowY: 'visible',
-            paddingLeft: 24,
-            paddingRight: 24,
-            paddingTop: 8,
-            paddingBottom: 8,
+            paddingLeft: 12,
+            paddingRight: 12,
+            paddingTop: 4,
+            paddingBottom: 4,
             scrollSnapType: 'x mandatory',
             direction: 'rtl',
           }}
@@ -1026,33 +1575,36 @@ function MainScreen({ username }: { username: string }) {
                 aria-selected={isActive}
                 aria-label={loc.name}
                 style={{ scrollSnapAlign: 'center', flexShrink: 0 }}
-                whileTap={{ scale: 0.9 }}
+                whileTap={{ scale: 0.88 }}
               >
                 <motion.div
-                  animate={{ scale: isActive ? 1.15 : 1 }}
+                  animate={{ scale: isActive ? 1.08 : 1 }}
                   transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}
+                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}
                 >
                   <div
                     style={{
-                      width: 64,
-                      height: 64,
+                      width: 48,
+                      height: 48,
                       borderRadius: '50%',
-                      background: `radial-gradient(circle, hsl(${loc.hue} 70% 65%) 0%, hsl(${loc.hue} 60% 35%) 100%)`,
+                      backgroundImage: `url("${loc.imagePath}")`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                      backgroundColor: loc.palette[1],
                       boxShadow: isActive
-                        ? `0 0 0 2.5px oklch(0.82 0.14 85), 0 0 20px hsl(${loc.hue} 70% 55% / 0.6)`
-                        : '0 0 0 1.5px rgba(255,255,255,0.15)',
+                        ? `0 0 0 2px oklch(0.82 0.14 85), 0 0 16px hsl(${loc.hue} 70% 55% / 0.6)`
+                        : '0 0 0 1px rgba(255,255,255,0.15)',
                       transition: 'box-shadow 0.2s',
                     }}
                   />
                   <span
                     style={{
-                      fontSize: 11,
+                      fontSize: 9,
                       color: isActive ? 'oklch(0.82 0.14 85)' : 'rgba(255,255,255,0.55)',
                       fontFamily: "'Tajawal', system-ui",
-                      fontWeight: isActive ? 700 : 400,
+                      fontWeight: isActive ? 600 : 400,
                       whiteSpace: 'nowrap',
-                      textShadow: isActive ? '0 0 8px oklch(0.82 0.14 85 / 0.5)' : 'none',
+                      textShadow: isActive ? '0 0 6px oklch(0.82 0.14 85 / 0.5)' : 'none',
                       transition: 'color 0.2s',
                     }}
                   >
@@ -1067,25 +1619,41 @@ function MainScreen({ username }: { username: string }) {
 
       {/* Capture row */}
       <div
-        className="absolute left-0 right-0 z-20 flex items-center justify-between px-8"
-        style={{ bottom: 'max(32px, env(safe-area-inset-bottom, 32px))' }}
+        className="absolute left-0 right-0 z-20 flex items-center justify-between px-4"
+        style={{ bottom: 'max(12px, env(safe-area-inset-bottom, 12px))' }}
         aria-label="شريط التصوير"
       >
         {/* Download/Save */}
         <motion.button
+          onClick={handleSave}
           className="glass-btn"
-          style={{ width: 52, height: 52 }}
+          disabled={!capturedImage}
+          style={{
+            width: 44,
+            height: 44,
+            opacity: capturedImage ? 1 : 0.45,
+            cursor: capturedImage ? 'pointer' : 'not-allowed',
+          }}
           whileTap={{ scale: 0.92 }}
           aria-label="حفظ الصورة"
         >
-          <Download size={22} color="rgba(255,255,255,0.85)" />
+          <Download size={18} color="rgba(255,255,255,0.85)" />
         </motion.button>
 
         {/* Shutter */}
         <motion.button
           onClick={handleShutter}
+          disabled={!cameraReady || Boolean(cameraError) || Boolean(capturedImage)}
           aria-label="التقاط صورة"
-          style={{ position: 'relative', width: 84, height: 84, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          style={{
+            position: 'relative',
+            width: 68,
+            height: 68,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            opacity: !cameraReady || Boolean(cameraError) || Boolean(capturedImage) ? 0.55 : 1,
+          }}
           whileTap={{ scale: 0.94 }}
         >
           {/* Outer ring gold gradient */}
@@ -1095,7 +1663,7 @@ function MainScreen({ username }: { username: string }) {
               inset: 0,
               borderRadius: '50%',
               background: 'linear-gradient(135deg, oklch(0.82 0.14 85), oklch(0.70 0.12 85))',
-              boxShadow: '0 0 20px oklch(0.82 0.14 85 / 0.4)',
+              boxShadow: '0 0 16px oklch(0.82 0.14 85 / 0.4)',
             }}
             animate={{ rotate: 360 }}
             transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
@@ -1104,7 +1672,7 @@ function MainScreen({ username }: { username: string }) {
           <div
             style={{
               position: 'absolute',
-              inset: 6,
+              inset: 5,
               borderRadius: '50%',
               background: 'rgba(255,255,255,0.3)',
             }}
@@ -1114,47 +1682,24 @@ function MainScreen({ username }: { username: string }) {
             animate={controls}
             style={{
               position: 'absolute',
-              inset: 12,
+              inset: 10,
               borderRadius: '50%',
               background: '#ffffff',
-              boxShadow: shutterActive ? '0 0 20px #ffffff' : 'none',
+              boxShadow: shutterActive ? '0 0 16px #ffffff' : 'none',
             }}
           />
         </motion.button>
 
-        {/* Right side stack: RefreshCcw + Flash */}
-        <div className="flex flex-col items-center gap-3">
-          {/* Flash toggle */}
-          <motion.button
-            onClick={() => setFlash((f) => !f)}
-            className="glass-btn"
-            style={{
-              width: 36,
-              height: 36,
-              boxShadow: flash ? '0 0 12px oklch(0.82 0.14 85 / 0.6)' : 'none',
-              borderColor: flash ? 'oklch(0.82 0.14 85 / 0.5)' : 'rgba(255,255,255,0.15)',
-            }}
-            whileTap={{ scale: 0.9 }}
-            aria-label={flash ? 'إيقاف الفلاش' : 'تشغيل الفلاش'}
-            aria-pressed={flash}
-          >
-            {flash ? (
-              <Zap size={16} color="oklch(0.82 0.14 85)" fill="oklch(0.82 0.14 85)" />
-            ) : (
-              <ZapOff size={16} color="rgba(255,255,255,0.7)" />
-            )}
-          </motion.button>
-
-          {/* Flip camera */}
-          <motion.button
-            className="glass-btn"
-            style={{ width: 52, height: 52 }}
-            whileTap={{ scale: 0.92, rotate: 180 }}
-            aria-label="قلب الكاميرا"
-          >
-            <RefreshCcw size={22} color="rgba(255,255,255,0.85)" />
-          </motion.button>
-        </div>
+        {/* Retake / Flip camera */}
+        <motion.button
+          onClick={handleRetakeOrFlip}
+          className="glass-btn"
+          style={{ width: 44, height: 44 }}
+          whileTap={{ scale: 0.92, rotate: 180 }}
+          aria-label={capturedImage ? 'إعادة الالتقاط' : 'قلب الكاميرا'}
+        >
+          <RefreshCcw size={18} color="rgba(255,255,255,0.85)" />
+        </motion.button>
       </div>
     </motion.section>
   )
