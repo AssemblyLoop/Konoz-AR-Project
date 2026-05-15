@@ -1,19 +1,18 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import type { ImageSegmenter, MPMask } from '@mediapipe/tasks-vision'
+import type { ImageSegmenter } from '@mediapipe/tasks-vision'
 import { createSelfieSegmenter } from './lib/selfieSegmenter'
+import {
+  createCompositeBuffers,
+  MAX_FRAME_MS,
+  renderImmersiveFrame,
+} from './lib/arCompositor'
 import {
   motion,
   AnimatePresence,
   useAnimation,
   type Variants,
 } from 'framer-motion'
-import {
-  Settings,
-  RefreshCcw,
-  Download,
-  Eye,
-  Radio,
-} from 'lucide-react'
+import { ArrowRight, Camera, Download, RefreshCcw } from 'lucide-react'
 
 // ─────────────────────────────────────────────
 // Types
@@ -74,11 +73,6 @@ const LOCATIONS: Location[] = [
 ]
 
 const GLYPHS = ['𓂀', '𓁹', '𓋹', '𓊽', '𓆣']
-
-interface CompositeBuffers {
-  maskCanvas: HTMLCanvasElement
-  personCanvas: HTMLCanvasElement
-}
 
 function drawCoverImage(
   ctx: CanvasRenderingContext2D,
@@ -159,70 +153,6 @@ function drawLocationBackground(
   drawMockBackground(ctx, width, height, location)
 }
 
-function ensureCompositeBuffers(
-  buffers: CompositeBuffers,
-  width: number,
-  height: number,
-) {
-  for (const canvas of [buffers.maskCanvas, buffers.personCanvas]) {
-    if (canvas.width !== width || canvas.height !== height) {
-      canvas.width = width
-      canvas.height = height
-    }
-  }
-}
-
-function renderFilteredFrame(
-  ctx: CanvasRenderingContext2D,
-  video: HTMLVideoElement,
-  confidenceMask: MPMask,
-  width: number,
-  height: number,
-  location: Location,
-  bgImage: HTMLImageElement | null,
-  facingMode: 'user' | 'environment',
-  buffers: CompositeBuffers,
-) {
-  ensureCompositeBuffers(buffers, width, height)
-
-  const maskCtx = buffers.maskCanvas.getContext('2d')
-  const personCtx = buffers.personCanvas.getContext('2d')
-  if (!maskCtx || !personCtx) return
-
-  const maskW = confidenceMask.width
-  const maskH = confidenceMask.height
-  const maskData = confidenceMask.getAsFloat32Array()
-  const maskImage = maskCtx.createImageData(maskW, maskH)
-  const pixels = maskImage.data
-  for (let i = 0; i < maskData.length; i += 1) {
-    const alpha = Math.round(maskData[i] * 255)
-    const offset = i * 4
-    pixels[offset] = 255
-    pixels[offset + 1] = 255
-    pixels[offset + 2] = 255
-    pixels[offset + 3] = alpha
-  }
-  maskCtx.putImageData(maskImage, 0, 0)
-
-  personCtx.clearRect(0, 0, width, height)
-  const mirror = facingMode === 'user'
-  if (mirror) {
-    personCtx.save()
-    personCtx.translate(width, 0)
-    personCtx.scale(-1, 1)
-  }
-  drawCoverImage(personCtx, video, width, height)
-  if (mirror) personCtx.restore()
-
-  personCtx.globalCompositeOperation = 'destination-in'
-  personCtx.drawImage(buffers.maskCanvas, 0, 0, maskW, maskH, 0, 0, width, height)
-  personCtx.globalCompositeOperation = 'source-over'
-
-  ctx.clearRect(0, 0, width, height)
-  drawLocationBackground(ctx, width, height, location, bgImage)
-  ctx.drawImage(buffers.personCanvas, 0, 0, width, height)
-}
-
 function getSecureContextMessage(): string | null {
   if (window.isSecureContext) return null
   return `الكاميرا تتطلب HTTPS. من iPhone افتح: https://${window.location.host}`
@@ -238,9 +168,9 @@ async function requestCameraStream(
   const constraints: MediaStreamConstraints = {
     video: {
       facingMode: facingMode === 'environment' ? { ideal: 'environment' } : { ideal: 'user' },
-      width: { ideal: 640, min: 320 },
-      height: { ideal: 640, min: 320 },
-      frameRate: { ideal: 24, max: 30 },
+      width: { ideal: 480, max: 640 },
+      height: { ideal: 480, max: 640 },
+      frameRate: { ideal: 15, max: 24 },
     },
     audio: false,
   }
@@ -1120,11 +1050,14 @@ function PersonalLoading({
 // ─────────────────────────────────────────────
 // MainScreen
 // ─────────────────────────────────────────────
+type MainView = 'browse' | 'immersive'
+
 function MainScreen({ username }: { username: string }) {
+  const [view, setView] = useState<MainView>('browse')
   const [activeFilter, setActiveFilter] = useState(0)
   const [shutterActive, setShutterActive] = useState(false)
   const [capturedImage, setCapturedImage] = useState<string | null>(null)
-  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user')
+  const [facingMode] = useState<'user' | 'environment'>('user')
   const [cameraReady, setCameraReady] = useState(false)
   const [cameraError, setCameraError] = useState<string | null>(null)
   const [cameraRequested, setCameraRequested] = useState(false)
@@ -1137,35 +1070,53 @@ function MainScreen({ username }: { username: string }) {
   const segmentationRef = useRef<ImageSegmenter | null>(null)
   const animationFrameRef = useRef<number | null>(null)
   const processingRef = useRef(false)
-  const lastVideoTimeRef = useRef(-1)
+  const lastProcessMsRef = useRef(0)
   const facingModeRef = useRef(facingMode)
-  const compositeBuffersRef = useRef<CompositeBuffers>({
-    maskCanvas: document.createElement('canvas'),
-    personCanvas: document.createElement('canvas'),
-  })
+  const compositeBuffersRef = useRef(createCompositeBuffers())
   const activeLocationRef = useRef(LOCATIONS[0])
   const activeBackgroundImageRef = useRef<HTMLImageElement | null>(null)
   const backgroundImageCacheRef = useRef<Record<string, HTMLImageElement>>({})
   const capturedImageRef = useRef<string | null>(null)
   const shutterRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  const resizeCanvas = useCallback(() => {
+    const canvas = cameraCanvasRef.current
+    if (!canvas) return
+    canvas.width = window.innerWidth
+    canvas.height = window.innerHeight
+    lastProcessMsRef.current = 0
+  }, [])
+
+  const enterImmersive = useCallback(
+    (index: number) => {
+      setActiveFilter(index)
+      setCapturedImage(null)
+      setView('immersive')
+      setCameraRequested(true)
+      requestAnimationFrame(() => resizeCanvas())
+    },
+    [resizeCanvas],
+  )
+
+  const exitImmersive = useCallback(() => {
+    setView('browse')
+    setCapturedImage(null)
+  }, [])
+
   const handleShutter = useCallback(() => {
     if (shutterActive || !cameraCanvasRef.current) return
     setShutterActive(true)
     setShowFlash(true)
-    setCapturedImage(cameraCanvasRef.current.toDataURL('image/png'))
+    setCapturedImage(cameraCanvasRef.current.toDataURL('image/jpeg', 0.92))
     void controls.start({ scale: [1, 0.9, 1.05, 1] })
-    setTimeout(() => setShowFlash(false), 250)
-    shutterRef.current = setTimeout(() => setShutterActive(false), 600)
+    setTimeout(() => setShowFlash(false), 200)
+    shutterRef.current = setTimeout(() => setShutterActive(false), 500)
   }, [shutterActive, controls])
 
-  const handleRetakeOrFlip = useCallback(() => {
-    if (capturedImage) {
-      setCapturedImage(null)
-      return
-    }
-    setFacingMode((prev) => (prev === 'user' ? 'environment' : 'user'))
-  }, [capturedImage])
+  const handleRetake = useCallback(() => {
+    setCapturedImage(null)
+    lastProcessMsRef.current = 0
+  }, [])
 
   const handleSave = useCallback(() => {
     if (!capturedImage) return
@@ -1183,8 +1134,15 @@ function MainScreen({ username }: { username: string }) {
     activeLocationRef.current = LOCATIONS[activeFilter]
     activeBackgroundImageRef.current =
       backgroundImageCacheRef.current[LOCATIONS[activeFilter].imagePath] ?? null
-    lastVideoTimeRef.current = -1
+    lastProcessMsRef.current = 0
   }, [activeFilter])
+
+  useEffect(() => {
+    if (view !== 'immersive') return
+    resizeCanvas()
+    window.addEventListener('resize', resizeCanvas)
+    return () => window.removeEventListener('resize', resizeCanvas)
+  }, [view, resizeCanvas])
 
   useEffect(() => {
     capturedImageRef.current = capturedImage
@@ -1289,7 +1247,7 @@ function MainScreen({ username }: { username: string }) {
   }, [facingMode, startCamera, cameraRequested])
 
   useEffect(() => {
-    if (!cameraReady || !segmentationLoaded) return
+    if (view !== 'immersive' || !cameraReady || !segmentationLoaded) return
 
     const loop = () => {
       animationFrameRef.current = window.requestAnimationFrame(loop)
@@ -1304,6 +1262,9 @@ function MainScreen({ username }: { username: string }) {
         return
       }
 
+      const now = performance.now()
+      if (now - lastProcessMsRef.current < MAX_FRAME_MS) return
+
       const video = videoRef.current
       const canvas = cameraCanvasRef.current
       const segmenter = segmentationRef.current
@@ -1312,26 +1273,23 @@ function MainScreen({ username }: { username: string }) {
         return
       }
 
-      const currentTime = video.currentTime
-      if (currentTime === lastVideoTimeRef.current) return
-      lastVideoTimeRef.current = currentTime
-
       processingRef.current = true
+      lastProcessMsRef.current = now
+
       try {
-        const result = segmenter.segmentForVideo(video, performance.now())
+        const result = segmenter.segmentForVideo(video, now)
         const mask = result.confidenceMasks?.[0]
         if (!mask) return
 
-        const ctx = canvas.getContext('2d')
+        const ctx = canvas.getContext('2d', { alpha: false })
         if (!ctx) return
 
-        renderFilteredFrame(
+        renderImmersiveFrame(
           ctx,
           video,
           mask,
           canvas.width,
           canvas.height,
-          activeLocationRef.current,
           activeBackgroundImageRef.current,
           facingModeRef.current,
           compositeBuffersRef.current,
@@ -1352,7 +1310,7 @@ function MainScreen({ username }: { username: string }) {
         animationFrameRef.current = null
       }
     }
-  }, [cameraReady, segmentationLoaded, capturedImage])
+  }, [view, cameraReady, segmentationLoaded, capturedImage])
 
   useEffect(() => {
     return () => {
@@ -1365,20 +1323,19 @@ function MainScreen({ username }: { username: string }) {
   }, [])
 
   const activeLocation = LOCATIONS[activeFilter]
+  const isImmersive = view === 'immersive'
+  const showLoader = isImmersive && (cameraError || !cameraReady || !segmentationLoaded)
 
   return (
     <motion.section
       key="main"
-      className="absolute inset-0"
+      className="absolute inset-0 bg-black"
       variants={stageVariants}
       initial="initial"
       animate="animate"
       exit="exit"
-      aria-label={`الكاميرا الرئيسية — ${activeLocation?.name ?? ''}`}
+      aria-label="الشاشة الرئيسية"
     >
-      {/* Decorative background */}
-      <CameraFeed />
-
       <video
         ref={videoRef}
         playsInline
@@ -1386,190 +1343,153 @@ function MainScreen({ username }: { username: string }) {
         autoPlay
         style={{
           position: 'fixed',
-          top: 0,
-          left: 0,
-          width: 640,
-          height: 640,
+          width: 1,
+          height: 1,
           opacity: 0,
           pointerEvents: 'none',
-          zIndex: -1,
         }}
         aria-hidden="true"
       />
 
-      {/* Flash overlay */}
-      <AnimatePresence>
-        {showFlash && (
+      <AnimatePresence mode="wait">
+        {view === 'browse' ? (
           <motion.div
-            key="flash"
-            className="absolute inset-0 pointer-events-none"
-            style={{ background: 'white', zIndex: 50 }}
+            key="browse"
+            className="absolute inset-0 flex flex-col"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
-            aria-hidden="true"
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Top bar */}
-      <div
-        className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-5"
-        style={{ paddingTop: 'max(16px, env(safe-area-inset-top, 16px))', paddingBottom: 16 }}
-      >
-        {/* Settings */}
-        <motion.button
-          className="glass-btn"
-          style={{ width: 48, height: 48 }}
-          whileTap={{ scale: 0.92 }}
-          aria-label="الإعدادات"
-        >
-          <Settings size={20} color="rgba(255,255,255,0.85)" />
-        </motion.button>
-
-        {/* LIVE chip */}
-        <div
-          className="flex items-center gap-2 glass rounded-full px-3 py-1.5"
-          style={{ border: '1px solid rgba(255,255,255,0.15)' }}
-          aria-label="بث مباشر"
-        >
-          <motion.div
-            style={{
-              width: 7,
-              height: 7,
-              borderRadius: '50%',
-              background: '#ff3b3b',
-              boxShadow: '0 0 8px #ff3b3baa',
-            }}
-            animate={{ opacity: [1, 0.3, 1] }}
-            transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
-            aria-hidden="true"
-          />
-          <span
-            style={{
-              fontSize: 11,
-              fontWeight: 700,
-              letterSpacing: '0.15em',
-              color: 'rgba(255,255,255,0.9)',
-            }}
           >
-            LIVE AR
-          </span>
-          <Radio size={14} color="rgba(255,255,255,0.6)" aria-hidden="true" />
-        </div>
-
-        {/* Eye */}
-        <motion.button
-          className="glass-btn"
-          style={{ width: 48, height: 48 }}
-          whileTap={{ scale: 0.92 }}
-          aria-label="معاينة"
-        >
-          <Eye size={20} color="rgba(255,255,255,0.85)" />
-        </motion.button>
-      </div>
-
-      {/* User greeting overlay */}
-      <motion.div
-        className="absolute z-10"
-        style={{ top: 80, left: 0, right: 0, textAlign: 'center' }}
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5, duration: 0.6 }}
-      >
-        <span
-          style={{
-            fontSize: 12,
-            color: 'rgba(255,255,255,0.45)',
-            letterSpacing: '0.15em',
-            fontFamily: "'Tajawal', system-ui",
-          }}
-        >
-          مرحباً، {username}
-        </span>
-      </motion.div>
-
-      {/* Camera square */}
-      <div className="absolute inset-0 z-10 flex items-center justify-center px-3" style={{ top: 60, bottom: 200 }}>
-        <div
-          style={{
-            width: 'min(90vw, 320px)',
-            aspectRatio: '1 / 1',
-            maxHeight: 'calc(100vh - 260px)',
-            position: 'relative',
-          }}
-        >
-          <div
-            className="glass"
-            style={{
-              position: 'absolute',
-              inset: 0,
-              overflow: 'hidden',
-              borderRadius: 28,
-              boxShadow: '0 0 40px oklch(0.78 0.14 195 / 0.25)',
-            }}
+            <CinematicBg />
+            <motion.div
+              className="relative z-10 px-5"
+              style={{ paddingTop: 'max(20px, env(safe-area-inset-top, 20px))' }}
+            >
+              <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
+                مرحباً، {username}
+              </p>
+              <h2
+                className="gradient-text-gold"
+                style={{
+                  margin: '8px 0 4px',
+                  fontSize: 26,
+                  fontWeight: 800,
+                  fontFamily: "'Tajawal', system-ui",
+                }}
+              >
+                اختر وجهتك
+              </h2>
+              <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.55)' }}>
+                ادخل المكان واستمتع بتجربة واقع معزز
+              </p>
+            </motion.div>
+            <motion.div
+              className="relative z-10 flex-1 overflow-y-auto px-4"
+              style={{
+                paddingTop: 16,
+                paddingBottom: 'max(20px, env(safe-area-inset-bottom, 20px))',
+              }}
+            >
+              <div className="grid grid-cols-2 gap-3" style={{ maxWidth: 480, margin: '0 auto' }}>
+                {LOCATIONS.map((loc, i) => (
+                  <motion.button
+                    key={loc.name}
+                    type="button"
+                    onClick={() => enterImmersive(i)}
+                    whileTap={{ scale: 0.97 }}
+                    style={{
+                      border: 'none',
+                      padding: 0,
+                      borderRadius: 20,
+                      overflow: 'hidden',
+                      cursor: 'pointer',
+                      textAlign: 'right',
+                      background: '#111',
+                      boxShadow: '0 8px 32px rgba(0,0,0,0.45)',
+                    }}
+                  >
+                    <div
+                      style={{
+                        height: 148,
+                        backgroundImage: `url("${loc.imagePath}")`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                      }}
+                    />
+                    <div style={{ padding: '12px 14px' }}>
+                      <motion.div
+                        style={{
+                          fontSize: 15,
+                          fontWeight: 700,
+                          color: '#fff',
+                          fontFamily: "'Tajawal', system-ui",
+                        }}
+                      >
+                        {loc.name}
+                      </motion.div>
+                      <div
+                        style={{
+                          fontSize: 11,
+                          color: 'rgba(255,255,255,0.6)',
+                          marginTop: 4,
+                          lineHeight: 1.5,
+                        }}
+                      >
+                        {loc.blurb.slice(0, 48)}…
+                      </div>
+                    </div>
+                  </motion.button>
+                ))}
+              </div>
+            </motion.div>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="immersive"
+            className="absolute inset-0"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
           >
             {capturedImage ? (
               <img
                 src={capturedImage}
-                alt={`صورة ملتقطة في فلتر ${activeLocation.name}`}
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                alt={`صورة في ${activeLocation.name}`}
+                style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
               />
             ) : (
               <canvas
                 ref={cameraCanvasRef}
-                width={640}
-                height={640}
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                aria-label="معاينة الكاميرا"
+                style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+                aria-label={`معاينة ${activeLocation.name}`}
               />
             )}
 
-            <div
-              style={{
-                position: 'absolute',
-                top: 12,
-                left: 12,
-                right: 12,
-                background: 'rgba(110,110,110,0.78)',
-                border: '1px solid rgba(255,255,255,0.25)',
-                borderRadius: 12,
-                padding: '8px 10px',
-                color: '#fff',
-              }}
-            >
-              <div style={{ fontSize: 13, fontWeight: 700 }}>{activeLocation.name}</div>
-              <div style={{ fontSize: 11, opacity: 0.9 }}>{activeLocation.blurb}</div>
-            </div>
+            <AnimatePresence>
+              {showFlash && (
+                <motion.div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{ background: 'white', zIndex: 40 }}
+                  initial={{ opacity: 0.8 }}
+                  animate={{ opacity: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                />
+              )}
+            </AnimatePresence>
 
-            {(cameraError || !cameraReady || !segmentationLoaded) && (
+            {showLoader && (
               <motion.div
-                style={{
-                  position: 'absolute',
-                  inset: 0,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 14,
-                  textAlign: 'center',
-                  padding: 20,
-                  background: 'rgba(0,0,0,0.55)',
-                  color: 'rgba(255,255,255,0.9)',
-                  fontSize: 13,
-                  lineHeight: 1.6,
-                }}
+                className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-4 px-8 text-center"
+                style={{ background: 'rgba(0,0,0,0.72)' }}
               >
-                <p style={{ margin: 0 }}>
+                <p style={{ margin: 0, color: '#fff', fontSize: 14, lineHeight: 1.7 }}>
                   {cameraError ??
                     (!segmentationLoaded
-                      ? 'جاري تحميل فلاتر إزالة الخلفية...'
-                      : cameraRequested
-                      ? 'جاري تشغيل الكاميرا...'
-                      : 'اضغط لتشغيل الكاميرا واستخدام الفلاتر')}
+                      ? 'جاري تحميل الذكاء الاصطناعي...'
+                      : 'جاري تشغيل الكاميرا...')}
                 </p>
-                {((!cameraReady && !cameraError) || cameraError) && (
+                {(cameraError || !cameraReady) && (
                   <motion.button
                     type="button"
                     onClick={handleStartCamera}
@@ -1578,16 +1498,11 @@ function MainScreen({ username }: { username: string }) {
                     style={{
                       border: 'none',
                       borderRadius: 9999,
-                      padding: '10px 20px',
-                      cursor: !segmentationLoaded && !cameraError ? 'not-allowed' : 'pointer',
-                      opacity: !segmentationLoaded && !cameraError ? 0.6 : 1,
-                      fontFamily: "'Tajawal', system-ui, sans-serif",
-                      fontSize: 14,
+                      padding: '10px 22px',
                       fontWeight: 700,
+                      fontFamily: "'Tajawal', system-ui",
+                      background: 'linear-gradient(135deg, #1aa6a0, #e8c55a)',
                       color: '#0a1a1a',
-                      background:
-                        'linear-gradient(135deg, oklch(0.78 0.14 195), oklch(0.82 0.14 85))',
-                      boxShadow: '0 0 20px oklch(0.78 0.14 195 / 0.35)',
                     }}
                   >
                     {cameraError ? 'إعادة المحاولة' : 'تشغيل الكاميرا'}
@@ -1595,176 +1510,83 @@ function MainScreen({ username }: { username: string }) {
                 )}
               </motion.div>
             )}
-          </div>
 
-          <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-            <ScanFrame />
-          </div>
-        </div>
-      </div>
+            <motion.button
+              type="button"
+              onClick={exitImmersive}
+              className="glass-btn absolute z-40"
+              style={{
+                top: 'max(14px, env(safe-area-inset-top, 14px))',
+                right: 14,
+                width: 44,
+                height: 44,
+              }}
+              whileTap={{ scale: 0.92 }}
+              aria-label="رجوع"
+            >
+              <ArrowRight size={22} color="#fff" />
+            </motion.button>
 
-      {/* Filter carousel */}
-      <div
-        className="absolute z-20 left-0 right-0"
-        style={{ bottom: 104 }}
-        aria-label="فلاتر المواقع"
-      >
-        <div
-          className="flex gap-2 no-scrollbar"
-          style={{
-            overflowX: 'auto',
-            overflowY: 'visible',
-            paddingLeft: 12,
-            paddingRight: 12,
-            paddingTop: 4,
-            paddingBottom: 4,
-            scrollSnapType: 'x mandatory',
-            direction: 'rtl',
-          }}
-          role="listbox"
-          aria-label="اختر موقعاً"
-        >
-          {LOCATIONS.map((loc, i) => {
-            const isActive = activeFilter === i
-            return (
-              <motion.button
-                key={loc.name}
-                onClick={() => setActiveFilter(i)}
-                role="option"
-                aria-selected={isActive}
-                aria-label={loc.name}
-                style={{ scrollSnapAlign: 'center', flexShrink: 0 }}
-                whileTap={{ scale: 0.88 }}
-              >
-                <motion.div
-                  animate={{ scale: isActive ? 1.08 : 1 }}
-                  transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}
-                >
-                  <div
-                    style={{
-                      width: 48,
-                      height: 48,
-                      borderRadius: '50%',
-                      backgroundImage: `url("${loc.imagePath}")`,
-                      backgroundSize: 'cover',
-                      backgroundPosition: 'center',
-                      backgroundColor: loc.palette[1],
-                      boxShadow: isActive
-                        ? `0 0 0 2px oklch(0.82 0.14 85), 0 0 16px hsl(${loc.hue} 70% 55% / 0.6)`
-                        : '0 0 0 1px rgba(255,255,255,0.15)',
-                      transition: 'box-shadow 0.2s',
-                    }}
-                  />
-                  <span
-                    style={{
-                      fontSize: 9,
-                      color: isActive ? 'oklch(0.82 0.14 85)' : 'rgba(255,255,255,0.55)',
-                      fontFamily: "'Tajawal', system-ui",
-                      fontWeight: isActive ? 600 : 400,
-                      whiteSpace: 'nowrap',
-                      textShadow: isActive ? '0 0 6px oklch(0.82 0.14 85 / 0.5)' : 'none',
-                      transition: 'color 0.2s',
-                    }}
+            <motion.div
+              className="absolute left-0 right-0 z-40 flex items-center justify-center gap-10 px-6"
+              style={{ bottom: 'max(24px, env(safe-area-inset-bottom, 24px))' }}
+            >
+              {capturedImage ? (
+                <>
+                  <motion.button
+                    type="button"
+                    onClick={handleRetake}
+                    className="glass-btn"
+                    style={{ width: 52, height: 52 }}
+                    whileTap={{ scale: 0.92 }}
+                    aria-label="إعادة الالتقاط"
                   >
-                    {loc.name}
-                  </span>
-                </motion.div>
-              </motion.button>
-            )
-          })}
-        </div>
-      </div>
+                    <RefreshCcw size={22} color="#fff" />
+                  </motion.button>
+                  <motion.button
+                    type="button"
+                    onClick={handleSave}
+                    className="glass-btn"
+                    style={{
+                      width: 52,
+                      height: 52,
+                      background: 'linear-gradient(135deg, #1aa6a0, #e8c55a)',
+                      border: 'none',
+                    }}
+                    whileTap={{ scale: 0.92 }}
+                    aria-label="حفظ الصورة"
+                  >
+                    <Download size={22} color="#0a1a1a" />
+                  </motion.button>
+                </>
+              ) : (
+                <motion.button
+                  type="button"
+                  onClick={handleShutter}
+                  disabled={!cameraReady || !segmentationLoaded || Boolean(cameraError)}
+                  aria-label="التقاط صورة"
+                  whileTap={{ scale: 0.94 }}
+                  style={{
+                    width: 76,
+                    height: 76,
+                    borderRadius: '50%',
+                    border: '4px solid rgba(255,255,255,0.9)',
+                    background: 'rgba(255,255,255,0.95)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    opacity: !cameraReady || !segmentationLoaded || cameraError ? 0.45 : 1,
+                    boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
+                  }}
+                >
+                  <Camera size={32} color="#0a1a1a" />
+                </motion.button>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* Capture row */}
-      <div
-        className="absolute left-0 right-0 z-20 flex items-center justify-between px-4"
-        style={{ bottom: 'max(12px, env(safe-area-inset-bottom, 12px))' }}
-        aria-label="شريط التصوير"
-      >
-        {/* Download/Save */}
-        <motion.button
-          onClick={handleSave}
-          className="glass-btn"
-          disabled={!capturedImage}
-          style={{
-            width: 44,
-            height: 44,
-            opacity: capturedImage ? 1 : 0.45,
-            cursor: capturedImage ? 'pointer' : 'not-allowed',
-          }}
-          whileTap={{ scale: 0.92 }}
-          aria-label="حفظ الصورة"
-        >
-          <Download size={18} color="rgba(255,255,255,0.85)" />
-        </motion.button>
-
-        {/* Shutter */}
-        <motion.button
-          onClick={handleShutter}
-          disabled={
-            !cameraReady ||
-            !segmentationLoaded ||
-            Boolean(cameraError) ||
-            Boolean(capturedImage)
-          }
-          aria-label="التقاط صورة"
-          style={{
-            position: 'relative',
-            width: 68,
-            height: 68,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            opacity: !cameraReady || Boolean(cameraError) || Boolean(capturedImage) ? 0.55 : 1,
-          }}
-          whileTap={{ scale: 0.94 }}
-        >
-          {/* Outer ring gold gradient */}
-          <motion.div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, oklch(0.82 0.14 85), oklch(0.70 0.12 85))',
-              boxShadow: '0 0 16px oklch(0.82 0.14 85 / 0.4)',
-            }}
-            animate={{ rotate: 360 }}
-            transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
-          />
-          {/* Middle ring */}
-          <div
-            style={{
-              position: 'absolute',
-              inset: 5,
-              borderRadius: '50%',
-              background: 'rgba(255,255,255,0.3)',
-            }}
-          />
-          {/* Inner circle */}
-          <motion.div
-            animate={controls}
-            style={{
-              position: 'absolute',
-              inset: 10,
-              borderRadius: '50%',
-              background: '#ffffff',
-              boxShadow: shutterActive ? '0 0 16px #ffffff' : 'none',
-            }}
-          />
-        </motion.button>
-
-        {/* Retake / Flip camera */}
-        <motion.button
-          onClick={handleRetakeOrFlip}
-          className="glass-btn"
-          style={{ width: 44, height: 44 }}
-          whileTap={{ scale: 0.92, rotate: 180 }}
-          aria-label={capturedImage ? 'إعادة الالتقاط' : 'قلب الكاميرا'}
-        >
-          <RefreshCcw size={18} color="rgba(255,255,255,0.85)" />
-        </motion.button>
-      </div>
     </motion.section>
   )
 }
