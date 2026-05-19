@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { RefreshCcw, Download, Radio, Camera, X } from 'lucide-react'
+import { RefreshCcw, Download, Radio, Camera, X, Info } from 'lucide-react'
 
 // ── Types ────────────────────────────────────────
 declare global {
@@ -9,18 +9,18 @@ declare global {
 }
 
 const FILTERS = [
-  { name: 'Trees',       src: '/backgrounds/trees_water.jpg' },
-  { name: 'Oasis',       src: '/backgrounds/oasis_wide.jpg' },
-  { name: 'Salt Pool',   src: '/backgrounds/salt_pool.jpg' },
-  { name: 'Lagoon',      src: '/backgrounds/blue_lagoon_wide.jpg' },
-  { name: 'Clear Water', src: '/backgrounds/clear_water.jpg' },
-  { name: 'Tent',        src: '/backgrounds/desert_tent.jpg' },
-  { name: 'Salt Cave',   src: '/backgrounds/salt_cave_center.jpg' },
-  { name: 'Tunnel',      src: '/backgrounds/cave_tunnel.jpg' },
-  { name: 'Gold Room',   src: '/backgrounds/gold_salt_room.jpg' },
-  { name: 'Mountain',    src: '/backgrounds/mountain_view.jpg' },
-  { name: 'Stairs',      src: '/backgrounds/rock_stairs.jpg' },
-  { name: 'Hot Spring',  src: '/backgrounds/hot_spring.png' },
+  { name: 'Trees',       src: '/backgrounds/trees_water.jpg', info: 'اكتشف جمال الأشجار المندمجة مع المياه الكريستالية، تجربة تعكس الهدوء والطبيعة الخلابة.' },
+  { name: 'Oasis',       src: '/backgrounds/oasis_wide.jpg', info: 'واحة طبيعية واسعة توفر لك مساحة للتأمل والاسترخاء في أحضان الطبيعة الدافئة.' },
+  { name: 'Salt Pool',   src: '/backgrounds/salt_pool.jpg', info: 'بركة الملح الغنية بالمعادن المفيدة للصحة، تجربة فريدة للاستشفاء الطبيعي.' },
+  { name: 'Lagoon',      src: '/backgrounds/blue_lagoon_wide.jpg', info: 'البحيرة الزرقاء الساحرة، مياه نقية ومناظر تريح العين وتهدئ الأعصاب.' },
+  { name: 'Clear Water', src: '/backgrounds/clear_water.jpg', info: 'مياه صافية تعكس نقاء الطبيعة، استمتع بصفاء الذهن والروح.' },
+  { name: 'Tent',        src: '/backgrounds/desert_tent.jpg', info: 'خيمة صحراوية أصيلة تأخذك في رحلة إلى عبق الماضي وسكون الصحراء.' },
+  { name: 'Salt Cave',   src: '/backgrounds/salt_cave_center.jpg', info: 'كهف الملح العلاجي، هواء مشبع باليود لتنقية الجهاز التنفسي والشعور بالانتعاش.' },
+  { name: 'Tunnel',      src: '/backgrounds/cave_tunnel.jpg', info: 'نفق صخري طبيعي ينقلك إلى عالم من المغامرات والاستكشاف.' },
+  { name: 'Gold Room',   src: '/backgrounds/gold_salt_room.jpg', info: 'غرفة الملح الذهبية المضاءة بشكل خافت لتوفير أقصى درجات الاسترخاء العلاجي.' },
+  { name: 'Mountain',    src: '/backgrounds/mountain_view.jpg', info: 'إطلالة جبلية شاهقة تمنحك شعوراً بالقوة والشموخ وتجدد طاقاتك.' },
+  { name: 'Stairs',      src: '/backgrounds/rock_stairs.jpg', info: 'درجات صخرية عتيقة تحكي قصصاً من الماضي وتقودك نحو آفاق جديدة.' },
+  { name: 'Hot Spring',  src: '/backgrounds/hot_spring.png', info: 'ينابيع المياه الساخنة الطبيعية، تجربة لا غنى عنها لراحة العضلات وتجديد الشباب.' },
 ]
 
 function coverRect(sW: number, sH: number, dW: number, dH: number) {
@@ -32,6 +32,7 @@ function coverRect(sW: number, sH: number, dW: number, dH: number) {
 export default function ARScreen({ username }: { username: string }) {
   const [filterIdx, setFilterIdx]   = useState(0)
   const filterIdxRef                = useRef(filterIdx)
+  const [showInfo, setShowInfo]     = useState<number | null>(null)
   const [status, setStatus]         = useState('')
 
   useEffect(() => {
@@ -143,7 +144,7 @@ export default function ARScreen({ username }: { username: string }) {
       video.srcObject = stream
       await video.play()
       setRunning(true)
-      setStatus('AR مباشر ✦')
+      setStatus(' ')
 
       const loop = async () => {
         if (!busyRef.current && videoRef.current && videoRef.current.readyState >= 2) {
@@ -287,42 +288,53 @@ export default function ARScreen({ username }: { username: string }) {
       {/* ── Top bar ── */}
       <div style={{
         position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20,
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: 'max(16px, env(safe-area-inset-top, 16px)) 20px 16px',
+        display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
+        padding: 'max(16px, env(safe-area-inset-top, 16px)) 16px 12px',
+        pointerEvents: 'none',
       }}>
-        {/* Greeting */}
-        <motion.div
-          initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4 }}
-          style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', fontFamily: "'Tajawal', system-ui" }}
-        >
-          مرحباً، {username}
-        </motion.div>
-
-        {/* LIVE chip */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 6,
-          background: 'rgba(255,255,255,0.10)', backdropFilter: 'blur(16px)',
-          border: '1px solid rgba(255,255,255,0.15)', borderRadius: 9999,
-          padding: '6px 12px',
-        }}>
+        {/* Greeting (Right side in RTL) */}
+        <div style={{ pointerEvents: 'auto', maxWidth: '40%', overflow: 'hidden' }}>
           <motion.div
-            style={{ width: 7, height: 7, borderRadius: '50%', background: running ? '#ff3b3b' : '#888', boxShadow: running ? '0 0 8px #ff3b3baa' : 'none' }}
-            animate={running ? { opacity: [1,0.3,1] } : { opacity: 1 }}
-            transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
-          />
-          <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.15em', color: 'rgba(255,255,255,0.9)' }}>LIVE AR</span>
-          <Radio size={14} color="rgba(255,255,255,0.6)" />
+            initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4 }}
+            style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', fontFamily: "'Tajawal', system-ui", whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}
+          >
+            مرحباً، {username}
+          </motion.div>
         </div>
 
-        {/* Flip camera */}
-        <motion.button
-          onClick={flipCamera}
-          className="glass-btn" style={{ width: 48, height: 48 }}
-          whileTap={{ scale: 0.92, rotate: 180 }}
-          aria-label="قلب الكاميرا"
-        >
-          <RefreshCcw size={20} color="rgba(255,255,255,0.85)" />
-        </motion.button>
+        {/* LIVE chip (Center absolute for perfect mobile centering) */}
+        <div style={{
+          position: 'absolute', left: '50%', transform: 'translateX(-50%)',
+          top: 'max(16px, env(safe-area-inset-top, 16px))', pointerEvents: 'auto',
+          display: 'flex', justifyContent: 'center'
+        }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            background: 'rgba(255,255,255,0.10)', backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.15)', borderRadius: 9999,
+            padding: '6px 12px',
+          }}>
+            <motion.div
+              style={{ width: 7, height: 7, borderRadius: '50%', background: running ? '#ff3b3b' : '#888', boxShadow: running ? '0 0 8px #ff3b3baa' : 'none' }}
+              animate={running ? { opacity: [1,0.3,1] } : { opacity: 1 }}
+              transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+            />
+            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.15em', color: 'rgba(255,255,255,0.9)' }}>AR مباشر</span>
+            <Radio size={14} color="rgba(255,255,255,0.6)" />
+          </div>
+        </div>
+
+        {/* Flip camera (Left side in RTL) */}
+        <div style={{ pointerEvents: 'auto', flexShrink: 0 }}>
+          <motion.button
+            onClick={flipCamera}
+            className="glass-btn" style={{ width: 44, height: 44 }}
+            whileTap={{ scale: 0.92, rotate: 180 }}
+            aria-label="قلب الكاميرا"
+          >
+            <RefreshCcw size={18} color="rgba(255,255,255,0.85)" />
+          </motion.button>
+        </div>
       </div>
 
       {/* ── Filter carousel ── */}
@@ -342,7 +354,10 @@ export default function ARScreen({ username }: { username: string }) {
             return (
               <motion.button
                 key={f.name}
-                onClick={() => setFilterIdx(i)}
+                onClick={() => {
+                  if (active) setShowInfo(i)
+                  else setFilterIdx(i)
+                }}
                 role="option" aria-selected={active}
                 style={{ scrollSnapAlign: 'center', flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
                 whileTap={{ scale: 0.9 }}
@@ -352,14 +367,24 @@ export default function ARScreen({ username }: { username: string }) {
                   transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                   style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}
                 >
-                  <div style={{
-                    width: 60, height: 60, borderRadius: '50%',
-                    backgroundImage: `url('${f.src}')`,
-                    backgroundSize: 'cover', backgroundPosition: 'center',
-                    border: active ? '3px solid oklch(0.82 0.14 85)' : '2px solid rgba(255,255,255,0.2)',
-                    boxShadow: active ? '0 0 0 2px oklch(0.78 0.14 195), 0 0 18px oklch(0.82 0.14 85 / 0.5)' : '0 4px 12px rgba(0,0,0,0.3)',
-                    transition: 'border 0.2s, box-shadow 0.2s',
-                  }} />
+                  <div style={{ position: 'relative', width: 60, height: 60, borderRadius: '50%' }}>
+                    <div style={{
+                      width: '100%', height: '100%', borderRadius: '50%',
+                      backgroundImage: `url('${f.src}')`,
+                      backgroundSize: 'cover', backgroundPosition: 'center',
+                      border: active ? '3px solid oklch(0.82 0.14 85)' : '2px solid rgba(255,255,255,0.2)',
+                      boxShadow: active ? '0 0 0 2px oklch(0.78 0.14 195), 0 0 18px oklch(0.82 0.14 85 / 0.5)' : '0 4px 12px rgba(0,0,0,0.3)',
+                      transition: 'border 0.2s, box-shadow 0.2s',
+                    }} />
+                    {active && (
+                      <div style={{
+                        position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)', borderRadius: '50%',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center'
+                      }}>
+                        <Info size={24} color="#ffffff" />
+                      </div>
+                    )}
+                  </div>
                   <span style={{
                     fontSize: 10, whiteSpace: 'nowrap',
                     color: active ? 'oklch(0.82 0.14 85)' : 'rgba(255,255,255,0.55)',
@@ -425,6 +450,45 @@ export default function ARScreen({ username }: { username: string }) {
             }}
           >
             {status}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Info Modal ── */}
+      <AnimatePresence>
+        {showInfo !== null && (
+          <motion.div
+            key="info-modal"
+            style={{ position:'absolute',inset:0,zIndex:40,display:'grid',placeItems:'center', background:'rgba(0,0,0,0.6)',backdropFilter:'blur(12px)', padding:'20px' }}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={() => setShowInfo(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
+              style={{
+                background: 'rgba(12, 18, 25, 0.95)', border: '1px solid rgba(255,255,255,0.15)',
+                padding: '28px 24px', borderRadius: '24px', maxWidth: '340px', width: '100%',
+                boxShadow: '0 30px 60px rgba(0,0,0,0.5)', textAlign: 'center'
+              }}
+              onClick={e => e.stopPropagation()}
+            >
+              <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 64, height: 64, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', marginBottom: 20 }}>
+                <Info size={32} color="oklch(0.82 0.14 85)" />
+              </div>
+              <h3 style={{ margin: '0 0 12px', fontSize: 24, color: 'white', fontFamily: "'Tajawal', system-ui", fontWeight: 700 }}>
+                {FILTERS[showInfo].name}
+              </h3>
+              <p style={{ margin: 0, fontSize: 15, color: 'rgba(255,255,255,0.75)', lineHeight: 1.6, fontFamily: "'Tajawal', system-ui" }}>
+                {FILTERS[showInfo].info}
+              </p>
+              <motion.button
+                onClick={() => setShowInfo(null)}
+                whileTap={{ scale: 0.95 }}
+                style={{ marginTop: 28, width: '100%', padding: '14px', borderRadius: 999, border: 'none', background: 'linear-gradient(135deg, oklch(0.78 0.14 195), oklch(0.82 0.14 85))', color: '#0a1a1a', fontWeight: 700, fontSize: 16, fontFamily: "'Tajawal', system-ui", cursor: 'pointer' }}
+              >
+                استمرار
+              </motion.button>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
