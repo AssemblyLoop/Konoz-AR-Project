@@ -2,18 +2,9 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import {
   motion,
   AnimatePresence,
-  useAnimation,
   type Variants,
 } from 'framer-motion'
-import {
-  Settings,
-  Zap,
-  ZapOff,
-  RefreshCcw,
-  Download,
-  Eye,
-  Radio,
-} from 'lucide-react'
+import ARScreen from './ARScreen'
 
 // ─────────────────────────────────────────────
 // Types
@@ -712,17 +703,17 @@ function WelcomeScreen({
 // PersonalLoading
 // ─────────────────────────────────────────────
 function LetterByLetter({ text, delay = 0 }: { text: string; delay?: number }) {
-  const letters = Array.from(text)
+  const words = text.split(' ')
   return (
-    <span aria-label={text}>
-      {letters.map((ch, i) => (
+    <span aria-label={text} style={{ display: 'inline-flex', gap: '0.3em', flexWrap: 'wrap', justifyContent: 'center' }}>
+      {words.map((word, i) => (
         <motion.span
           key={i}
           initial={{ opacity: 0, filter: 'blur(8px)' }}
           animate={{ opacity: 1, filter: 'blur(0px)' }}
-          transition={{ delay: delay + i * 0.05, duration: 0.3, ease: 'easeOut' }}
+          transition={{ delay: delay + i * 0.15, duration: 0.4, ease: 'easeOut' }}
         >
-          {ch}
+          {word}
         </motion.span>
       ))}
     </span>
@@ -857,310 +848,6 @@ function PersonalLoading({
 }
 
 // ─────────────────────────────────────────────
-// MainScreen
-// ─────────────────────────────────────────────
-function MainScreen({ username }: { username: string }) {
-  const [activeFilter, setActiveFilter] = useState(0)
-  const [flash, setFlash] = useState(false)
-  const [shutterActive, setShutterActive] = useState(false)
-  const [showFlash, setShowFlash] = useState(false)
-  const controls = useAnimation()
-  const shutterRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  const handleShutter = useCallback(() => {
-    if (shutterActive) return
-    setShutterActive(true)
-    setShowFlash(true)
-    void controls.start({ scale: [1, 0.9, 1.05, 1] })
-    setTimeout(() => setShowFlash(false), 250)
-    shutterRef.current = setTimeout(() => setShutterActive(false), 600)
-  }, [shutterActive, controls])
-
-  useEffect(() => {
-    return () => {
-      if (shutterRef.current) clearTimeout(shutterRef.current)
-    }
-  }, [])
-
-  const activeLocation = LOCATIONS[activeFilter]
-
-  return (
-    <motion.section
-      key="main"
-      className="absolute inset-0"
-      variants={stageVariants}
-      initial="initial"
-      animate="animate"
-      exit="exit"
-      aria-label={`الكاميرا الرئيسية — ${activeLocation?.name ?? ''}`}
-    >
-      {/* Camera feed */}
-      <CameraFeed />
-
-      {/* Flash overlay */}
-      <AnimatePresence>
-        {showFlash && (
-          <motion.div
-            key="flash"
-            className="absolute inset-0 pointer-events-none"
-            style={{ background: 'white', zIndex: 50 }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
-            aria-hidden="true"
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Top bar */}
-      <div
-        className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-5"
-        style={{ paddingTop: 'max(16px, env(safe-area-inset-top, 16px))', paddingBottom: 16 }}
-      >
-        {/* Settings */}
-        <motion.button
-          className="glass-btn"
-          style={{ width: 48, height: 48 }}
-          whileTap={{ scale: 0.92 }}
-          aria-label="الإعدادات"
-        >
-          <Settings size={20} color="rgba(255,255,255,0.85)" />
-        </motion.button>
-
-        {/* LIVE chip */}
-        <div
-          className="flex items-center gap-2 glass rounded-full px-3 py-1.5"
-          style={{ border: '1px solid rgba(255,255,255,0.15)' }}
-          aria-label="بث مباشر"
-        >
-          <motion.div
-            style={{
-              width: 7,
-              height: 7,
-              borderRadius: '50%',
-              background: '#ff3b3b',
-              boxShadow: '0 0 8px #ff3b3baa',
-            }}
-            animate={{ opacity: [1, 0.3, 1] }}
-            transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
-            aria-hidden="true"
-          />
-          <span
-            style={{
-              fontSize: 11,
-              fontWeight: 700,
-              letterSpacing: '0.15em',
-              color: 'rgba(255,255,255,0.9)',
-            }}
-          >
-            LIVE AR
-          </span>
-          <Radio size={14} color="rgba(255,255,255,0.6)" aria-hidden="true" />
-        </div>
-
-        {/* Eye */}
-        <motion.button
-          className="glass-btn"
-          style={{ width: 48, height: 48 }}
-          whileTap={{ scale: 0.92 }}
-          aria-label="معاينة"
-        >
-          <Eye size={20} color="rgba(255,255,255,0.85)" />
-        </motion.button>
-      </div>
-
-      {/* User greeting overlay */}
-      <motion.div
-        className="absolute z-10"
-        style={{ top: 80, left: 0, right: 0, textAlign: 'center' }}
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5, duration: 0.6 }}
-      >
-        <span
-          style={{
-            fontSize: 12,
-            color: 'rgba(255,255,255,0.45)',
-            letterSpacing: '0.15em',
-            fontFamily: "'Tajawal', system-ui",
-          }}
-        >
-          مرحباً، {username}
-        </span>
-      </motion.div>
-
-      {/* ScanFrame centered */}
-      <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
-        <ScanFrame />
-      </div>
-
-      {/* Filter carousel */}
-      <div
-        className="absolute z-20 left-0 right-0"
-        style={{ bottom: 130 }}
-        aria-label="فلاتر المواقع"
-      >
-        <div
-          className="flex gap-4 no-scrollbar"
-          style={{
-            overflowX: 'auto',
-            overflowY: 'visible',
-            paddingLeft: 24,
-            paddingRight: 24,
-            paddingTop: 8,
-            paddingBottom: 8,
-            scrollSnapType: 'x mandatory',
-            direction: 'rtl',
-          }}
-          role="listbox"
-          aria-label="اختر موقعاً"
-        >
-          {LOCATIONS.map((loc, i) => {
-            const isActive = activeFilter === i
-            return (
-              <motion.button
-                key={loc.name}
-                onClick={() => setActiveFilter(i)}
-                role="option"
-                aria-selected={isActive}
-                aria-label={loc.name}
-                style={{ scrollSnapAlign: 'center', flexShrink: 0 }}
-                whileTap={{ scale: 0.9 }}
-              >
-                <motion.div
-                  animate={{ scale: isActive ? 1.15 : 1 }}
-                  transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}
-                >
-                  <div
-                    style={{
-                      width: 64,
-                      height: 64,
-                      borderRadius: '50%',
-                      background: `radial-gradient(circle, hsl(${loc.hue} 70% 65%) 0%, hsl(${loc.hue} 60% 35%) 100%)`,
-                      boxShadow: isActive
-                        ? `0 0 0 2.5px oklch(0.82 0.14 85), 0 0 20px hsl(${loc.hue} 70% 55% / 0.6)`
-                        : '0 0 0 1.5px rgba(255,255,255,0.15)',
-                      transition: 'box-shadow 0.2s',
-                    }}
-                  />
-                  <span
-                    style={{
-                      fontSize: 11,
-                      color: isActive ? 'oklch(0.82 0.14 85)' : 'rgba(255,255,255,0.55)',
-                      fontFamily: "'Tajawal', system-ui",
-                      fontWeight: isActive ? 700 : 400,
-                      whiteSpace: 'nowrap',
-                      textShadow: isActive ? '0 0 8px oklch(0.82 0.14 85 / 0.5)' : 'none',
-                      transition: 'color 0.2s',
-                    }}
-                  >
-                    {loc.name}
-                  </span>
-                </motion.div>
-              </motion.button>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* Capture row */}
-      <div
-        className="absolute left-0 right-0 z-20 flex items-center justify-between px-8"
-        style={{ bottom: 'max(32px, env(safe-area-inset-bottom, 32px))' }}
-        aria-label="شريط التصوير"
-      >
-        {/* Download/Save */}
-        <motion.button
-          className="glass-btn"
-          style={{ width: 52, height: 52 }}
-          whileTap={{ scale: 0.92 }}
-          aria-label="حفظ الصورة"
-        >
-          <Download size={22} color="rgba(255,255,255,0.85)" />
-        </motion.button>
-
-        {/* Shutter */}
-        <motion.button
-          onClick={handleShutter}
-          aria-label="التقاط صورة"
-          style={{ position: 'relative', width: 84, height: 84, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          whileTap={{ scale: 0.94 }}
-        >
-          {/* Outer ring gold gradient */}
-          <motion.div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, oklch(0.82 0.14 85), oklch(0.70 0.12 85))',
-              boxShadow: '0 0 20px oklch(0.82 0.14 85 / 0.4)',
-            }}
-            animate={{ rotate: 360 }}
-            transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
-          />
-          {/* Middle ring */}
-          <div
-            style={{
-              position: 'absolute',
-              inset: 6,
-              borderRadius: '50%',
-              background: 'rgba(255,255,255,0.3)',
-            }}
-          />
-          {/* Inner circle */}
-          <motion.div
-            animate={controls}
-            style={{
-              position: 'absolute',
-              inset: 12,
-              borderRadius: '50%',
-              background: '#ffffff',
-              boxShadow: shutterActive ? '0 0 20px #ffffff' : 'none',
-            }}
-          />
-        </motion.button>
-
-        {/* Right side stack: RefreshCcw + Flash */}
-        <div className="flex flex-col items-center gap-3">
-          {/* Flash toggle */}
-          <motion.button
-            onClick={() => setFlash((f) => !f)}
-            className="glass-btn"
-            style={{
-              width: 36,
-              height: 36,
-              boxShadow: flash ? '0 0 12px oklch(0.82 0.14 85 / 0.6)' : 'none',
-              borderColor: flash ? 'oklch(0.82 0.14 85 / 0.5)' : 'rgba(255,255,255,0.15)',
-            }}
-            whileTap={{ scale: 0.9 }}
-            aria-label={flash ? 'إيقاف الفلاش' : 'تشغيل الفلاش'}
-            aria-pressed={flash}
-          >
-            {flash ? (
-              <Zap size={16} color="oklch(0.82 0.14 85)" fill="oklch(0.82 0.14 85)" />
-            ) : (
-              <ZapOff size={16} color="rgba(255,255,255,0.7)" />
-            )}
-          </motion.button>
-
-          {/* Flip camera */}
-          <motion.button
-            className="glass-btn"
-            style={{ width: 52, height: 52 }}
-            whileTap={{ scale: 0.92, rotate: 180 }}
-            aria-label="قلب الكاميرا"
-          >
-            <RefreshCcw size={22} color="rgba(255,255,255,0.85)" />
-          </motion.button>
-        </div>
-      </div>
-    </motion.section>
-  )
-}
-
-// ─────────────────────────────────────────────
 // ShifaaMisr — Root
 // ─────────────────────────────────────────────
 export default function ShifaaMisr() {
@@ -1201,9 +888,10 @@ export default function ShifaaMisr() {
           />
         )}
         {stage === 'main' && (
-          <MainScreen key="main" username={username} />
+          <ARScreen key="main" username={username} />
         )}
       </AnimatePresence>
     </div>
   )
 }
+

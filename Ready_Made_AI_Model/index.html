@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>AR Background Camera</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/selfie_segmentation.js"></script>
+</head>
+<body>
+  <main id="app">
+    <video id="camera" playsinline muted></video>
+    <canvas id="output" aria-label="Live camera with background filter"></canvas>
+    <canvas id="personCanvas" class="hidden-canvas"></canvas>
+    <canvas id="bgCanvas" class="hidden-canvas"></canvas>
+    <canvas id="captureCanvas" class="hidden-canvas"></canvas>
+
+    <div class="shade"></div>
+
+    <button id="previewBtn" class="circle-btn left top" aria-label="Preview button">◉</button>
+    <button id="switchBtn" class="circle-btn right top" aria-label="Switch camera">↻</button>
+
+    <div class="live-pill"><span>⌾</span><strong>LIVE AR</strong><i></i></div>
+    <button id="startBtn" class="start-chip">Camera On</button>
+
+    <section class="filter-strip" aria-label="Background filters">
+      <button class="arrow-btn" id="prevFilters" aria-label="Previous filters">‹</button>
+      <div id="filters" class="filters"></div>
+      <button class="arrow-btn" id="nextFilters" aria-label="Next filters">›</button>
+    </section>
+
+    <button id="captureBtn" class="capture-btn" aria-label="Take normal photo"><span></span></button>
+    <button id="downloadQuickBtn" class="download-btn" aria-label="Download last photo">⇩</button>
+
+    <div id="status" class="status">Click Camera On to start</div>
+
+    <section id="photoModal" class="photo-modal hidden" aria-label="Captured photo result">
+      <div class="photo-card">
+        <div class="photo-title">
+          <div>
+            <p>Normal Capture</p>
+            <h2>Photo with Selected Background</h2>
+          </div>
+          <button id="closeModal" class="small-btn">×</button>
+        </div>
+        <img id="photoPreview" alt="Captured result" />
+        <div class="photo-actions">
+          <button id="retakeBtn" class="ghost-btn">Retake</button>
+          <a id="savePhoto" class="save-btn" download="ar-filter-photo.png">Save Photo</a>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

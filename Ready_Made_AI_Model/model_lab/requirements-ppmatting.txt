@@ -1,0 +1,5 @@
+paddlepaddle
+paddleseg
+opencv-python
+pillow
+numpy
