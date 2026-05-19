@@ -94,16 +94,23 @@ export default function ARScreen({ username }: { username: string }) {
 
     const bgImg = await loadImg(FILTERS[filterIdxRef.current].src)
     const bgR = coverRect(bgImg.naturalWidth, bgImg.naturalHeight, w, h)
-    const vR  = coverRect(video.videoWidth, video.videoHeight, w, h)
+
+    // Scale person to 60% of canvas height, anchored bottom-center (zoomed-out feel)
+    const personScale = 0.60
+    const personH = h * personScale
+    const personAspect = video.videoWidth / video.videoHeight
+    const personW = personH * personAspect
+    const personX = (w - personW) / 2
+    const personY = h - personH  // anchor to bottom
 
     bCtx.clearRect(0, 0, w, h)
     bCtx.drawImage(bgImg, bgR.x, bgR.y, bgR.w, bgR.h)
 
     pCtx.clearRect(0, 0, w, h)
-    pCtx.drawImage(results.image, vR.x, vR.y, vR.w, vR.h)
+    pCtx.drawImage(results.image, personX, personY, personW, personH)
     pCtx.globalCompositeOperation = 'destination-in'
     pCtx.filter = 'blur(0.7px)'
-    pCtx.drawImage(results.segmentationMask, vR.x, vR.y, vR.w, vR.h)
+    pCtx.drawImage(results.segmentationMask, personX, personY, personW, personH)
     pCtx.filter = 'none'
     pCtx.globalCompositeOperation = 'source-over'
 
@@ -288,12 +295,13 @@ export default function ARScreen({ username }: { username: string }) {
       {/* ── Top bar ── */}
       <div style={{
         position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20,
-        display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
-        padding: 'max(16px, env(safe-area-inset-top, 16px)) 16px 12px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        paddingTop: 'max(14px, env(safe-area-inset-top, 14px))',
+        paddingLeft: 14, paddingRight: 14, paddingBottom: 10,
         pointerEvents: 'none',
       }}>
         {/* Greeting (Right side in RTL) */}
-        <div style={{ pointerEvents: 'auto', maxWidth: '40%', overflow: 'hidden' }}>
+        <div style={{ pointerEvents: 'auto', maxWidth: '35%', overflow: 'hidden', paddingTop: 2 }}>
           <motion.div
             initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4 }}
             style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', fontFamily: "'Tajawal', system-ui", whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}
@@ -305,7 +313,7 @@ export default function ARScreen({ username }: { username: string }) {
         {/* LIVE chip (Center absolute for perfect mobile centering) */}
         <div style={{
           position: 'absolute', left: '50%', transform: 'translateX(-50%)',
-          top: 'max(16px, env(safe-area-inset-top, 16px))', pointerEvents: 'auto',
+          top: 'max(14px, env(safe-area-inset-top, 14px))', pointerEvents: 'auto',
           display: 'flex', justifyContent: 'center'
         }}>
           <div style={{
@@ -459,16 +467,17 @@ export default function ARScreen({ username }: { username: string }) {
         {showInfo !== null && (
           <motion.div
             key="info-modal"
-            style={{ position:'absolute',inset:0,zIndex:40,display:'grid',placeItems:'center', background:'rgba(0,0,0,0.6)',backdropFilter:'blur(12px)', padding:'20px' }}
+            style={{ position:'absolute',inset:0,zIndex:40,display:'grid',placeItems:'center', background:'rgba(0,0,0,0.25)',backdropFilter:'blur(6px)', padding:'20px' }}
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={() => setShowInfo(null)}
           >
             <motion.div
               initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
               style={{
-                background: 'rgba(12, 18, 25, 0.95)', border: '1px solid rgba(255,255,255,0.15)',
+                background: 'rgba(8, 14, 20, 0.55)', backdropFilter: 'blur(24px)',
+                border: '1px solid rgba(255,255,255,0.12)',
                 padding: '28px 24px', borderRadius: '24px', maxWidth: '340px', width: '100%',
-                boxShadow: '0 30px 60px rgba(0,0,0,0.5)', textAlign: 'center'
+                boxShadow: '0 20px 50px rgba(0,0,0,0.35)', textAlign: 'center'
               }}
               onClick={e => e.stopPropagation()}
             >

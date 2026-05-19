@@ -868,9 +868,9 @@ export default function ShifaaMisr() {
       className="relative overflow-hidden bg-black text-white"
       style={{
         width: '100%',
-        height: '100dvh',
+        height: '100%',
         fontFamily: "'Tajawal', 'Segoe UI', system-ui, sans-serif",
-        touchAction: 'manipulation',
+        touchAction: 'none',
       }}
     >
       <AnimatePresence mode="wait">
