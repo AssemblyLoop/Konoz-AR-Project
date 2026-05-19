@@ -31,7 +31,12 @@ function coverRect(sW: number, sH: number, dW: number, dH: number) {
 // ── ARScreen ─────────────────────────────────────
 export default function ARScreen({ username }: { username: string }) {
   const [filterIdx, setFilterIdx]   = useState(0)
+  const filterIdxRef                = useRef(filterIdx)
   const [status, setStatus]         = useState('')
+
+  useEffect(() => {
+    filterIdxRef.current = filterIdx
+  }, [filterIdx])
   const [running, setRunning]       = useState(false)
   const [loading, setLoading]       = useState(false)
   const [facingMode, setFacingMode] = useState<'user'|'environment'>('user')
@@ -86,7 +91,7 @@ export default function ARScreen({ username }: { username: string }) {
     person.width = w; person.height = h
     bg.width = w; bg.height = h
 
-    const bgImg = await loadImg(FILTERS[filterIdx].src)
+    const bgImg = await loadImg(FILTERS[filterIdxRef.current].src)
     const bgR = coverRect(bgImg.naturalWidth, bgImg.naturalHeight, w, h)
     const vR  = coverRect(video.videoWidth, video.videoHeight, w, h)
 
@@ -104,7 +109,7 @@ export default function ARScreen({ username }: { username: string }) {
     ctx.clearRect(0, 0, w, h)
     ctx.drawImage(bg, 0, 0)
     ctx.drawImage(person, 0, 0)
-  }, [filterIdx, loadImg, resizeOutput])
+  }, [loadImg, resizeOutput])
 
   // Start camera + segmenter
   const startCamera = useCallback(async (facing: 'user'|'environment') => {
