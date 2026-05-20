@@ -41,14 +41,17 @@
     <div id="pano-container"></div>
 
     <script type="text/javascript" src="/cleopatras-path/pano2vr_player.js"></script>
+    <script type="text/javascript" src="/pano-motion.js"></script>
 
     <script type="text/javascript">
         // Block right-click so the context menu (with the Marsa Alam logo) never appears
         document.addEventListener('contextmenu', function(e) { e.preventDefault(); }, true);
 
-        // Initialise the player
-        var pano = new pano2vrPlayer('pano-container');
-        pano.readConfigUrlAsync('/cleopatras-path/pano.xml');
+        // Initialise the player with motion control on mobile devices
+        window.initKonozPanoViewer({
+            containerId: 'pano-container',
+            configUrl: '/cleopatras-path/pano.xml'
+        });
 
         // MutationObserver: hide only specific UI injections, never touch class-less divs
         var observer = new MutationObserver(function(mutations) {

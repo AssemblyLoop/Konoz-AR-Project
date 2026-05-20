@@ -8,6 +8,8 @@ if (window.location.pathname === '/siwa-oasis') {
   createRoot(document.getElementById('root')!).render(
     <iframe
       src="/siwa-oasis/index.html"
+      allow="accelerometer; gyroscope; magnetometer; fullscreen"
+      allowFullScreen
       style={{ width: '100vw', height: '100vh', border: 'none', margin: 0, padding: 0, display: 'block' }}
       title="Siwa Oasis 360"
     />
