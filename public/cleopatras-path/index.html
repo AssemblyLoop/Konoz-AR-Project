@@ -18,6 +18,7 @@
             background: #000;
             touch-action: none;
             user-select: none;
+            -webkit-user-select: none;
         }
 
         #pano-container {
@@ -26,38 +27,12 @@
             position: relative;
         }
 
-        /*
-         * Aggressively hide ALL Pano2VR UI overlays:
-         * – ggskin_* elements (skin overlays, hotspots, buttons, menus)
-         * – gg_contextmenu (right-click branding menu)
-         * – gg_about / any about dialog
-         * – Any absolutely-positioned div that is NOT a canvas
-         */
-        #pano-container div:not([class]),
-        #pano-container div[class=""],
-        .ggskin_button,
-        .ggskin_hotspot,
-        .ggskin_container,
-        .ggskin_text,
-        .ggskin_menubar,
-        .ggskin_menu,
-        .ggskin_external,
-        .ggskin_svg,
-        .ggskin_nodeimage,
-        .ggskin_rectangle,
-        .gg_contextmenu,
-        .gg_context_row,
+        /* Hide ONLY named skin/UI classes — do NOT touch class-less divs (player needs those for WebGL) */
         [class*="ggskin"],
         [class*="gg_"] {
             display: none !important;
             visibility: hidden !important;
-            opacity: 0 !important;
             pointer-events: none !important;
-        }
-
-        /* Ensure only canvas elements are visible */
-        canvas {
-            display: block !important;
         }
     </style>
 </head>
@@ -68,44 +43,30 @@
     <script type="text/javascript" src="/cleopatras-path/pano2vr_player.js"></script>
 
     <script type="text/javascript">
-        // ── Block the right-click context menu entirely ──────────────────────
+        // Block right-click so the context menu (with the Marsa Alam logo) never appears
         document.addEventListener('contextmenu', function(e) { e.preventDefault(); }, true);
 
-        // ── Initialise the 360 player ────────────────────────────────────────
+        // Initialise the player
         var pano = new pano2vrPlayer('pano-container');
         pano.readConfigUrlAsync('/cleopatras-path/pano.xml');
 
-        // ── MutationObserver: destroy every non-canvas element the player injects ──
+        // MutationObserver: hide only specific UI injections, never touch class-less divs
         var observer = new MutationObserver(function(mutations) {
             mutations.forEach(function(mutation) {
                 mutation.addedNodes.forEach(function(node) {
-                    if (node.nodeType !== 1) return; // elements only
+                    if (node.nodeType !== 1) return;
+                    var cls = (node.getAttribute && node.getAttribute('class')) || '';
 
-                    var tag = node.tagName ? node.tagName.toLowerCase() : '';
-                    var cls = (node.className || '').toString();
-
-                    // Allow: canvas, the outer wrapper divs the player needs
-                    if (tag === 'canvas') return;
-
-                    // Kill anything that looks like a skin overlay / context menu / about
-                    if (
-                        cls.indexOf('ggskin')   !== -1 ||
-                        cls.indexOf('gg_')       !== -1 ||
-                        tag === 'hr'                    ||
-                        tag === 'style'
-                    ) {
-                        node.remove();
+                    // Hide skin overlays and context-menu elements by class name
+                    if (cls.indexOf('ggskin') !== -1 || cls.indexOf('gg_') !== -1) {
+                        node.style.cssText = 'display:none!important;pointer-events:none!important;';
                         return;
                     }
 
-                    // For plain divs injected by the player (context menu, about panel),
-                    // hide them and strip pointer-events so they're inert.
-                    if (tag === 'div') {
-                        var zIndex = parseInt(
-                            (node.style && node.style.zIndex) || '0', 10
-                        );
-                        // Player context menu uses z-index 32000; about uses high z-indices
-                        if (zIndex > 1000) {
+                    // The player context menu is a plain div with z-index 32000 — kill it
+                    if (node.tagName && node.tagName.toLowerCase() === 'div') {
+                        var z = parseInt((node.style && node.style.zIndex) || '0', 10);
+                        if (z >= 32000) {
                             node.style.cssText = 'display:none!important;pointer-events:none!important;';
                         }
                     }
@@ -113,23 +74,15 @@
             });
         });
 
-        observer.observe(document.body, { childList: true, subtree: true });
+        observer.observe(document.getElementById('pano-container'), { childList: true, subtree: true });
 
-        // ── Periodic cleanup: nuke any surviving overlays ────────────────────
+        // Fallback sweep every 500 ms — only removes explicit context-menu and high-z overlay divs
         function purgeOverlays() {
-            // Context menus
-            document.querySelectorAll('.gg_contextmenu, [class*="ggskin"]').forEach(function(el) {
-                el.style.cssText = 'display:none!important;';
-            });
-            // High-z-index divs that aren't the pano container itself
-            document.querySelectorAll('#pano-container > div').forEach(function(el) {
-                var z = parseInt(el.style.zIndex || '0', 10);
-                if (z > 1000) el.style.cssText = 'display:none!important;pointer-events:none!important;';
+            document.querySelectorAll('[class*="gg_contextmenu"], [class*="ggskin"]').forEach(function(el) {
+                el.style.cssText = 'display:none!important;pointer-events:none!important;';
             });
         }
-
-        setInterval(purgeOverlays, 400);
-        window.addEventListener('load', purgeOverlays);
+        setInterval(purgeOverlays, 500);
     </script>
 
     <noscript><p><b>Please enable JavaScript.</b></p></noscript>
