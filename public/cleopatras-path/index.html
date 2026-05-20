@@ -56,4 +56,82 @@
         }
 
         /* Ensure only canvas elements are visible */
-        ca
+        canvas {
+            display: block !important;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="pano-container"></div>
+
+    <script type="text/javascript" src="/cleopatras-path/pano2vr_player.js"></script>
+
+    <script type="text/javascript">
+        // ── Block the right-click context menu entirely ──────────────────────
+        document.addEventListener('contextmenu', function(e) { e.preventDefault(); }, true);
+
+        // ── Initialise the 360 player ────────────────────────────────────────
+        var pano = new pano2vrPlayer('pano-container');
+        pano.readConfigUrlAsync('/cleopatras-path/pano.xml');
+
+        // ── MutationObserver: destroy every non-canvas element the player injects ──
+        var observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                mutation.addedNodes.forEach(function(node) {
+                    if (node.nodeType !== 1) return; // elements only
+
+                    var tag = node.tagName ? node.tagName.toLowerCase() : '';
+                    var cls = (node.className || '').toString();
+
+                    // Allow: canvas, the outer wrapper divs the player needs
+                    if (tag === 'canvas') return;
+
+                    // Kill anything that looks like a skin overlay / context menu / about
+                    if (
+                        cls.indexOf('ggskin')   !== -1 ||
+                        cls.indexOf('gg_')       !== -1 ||
+                        tag === 'hr'                    ||
+                        tag === 'style'
+                    ) {
+                        node.remove();
+                        return;
+                    }
+
+                    // For plain divs injected by the player (context menu, about panel),
+                    // hide them and strip pointer-events so they're inert.
+                    if (tag === 'div') {
+                        var zIndex = parseInt(
+                            (node.style && node.style.zIndex) || '0', 10
+                        );
+                        // Player context menu uses z-index 32000; about uses high z-indices
+                        if (zIndex > 1000) {
+                            node.style.cssText = 'display:none!important;pointer-events:none!important;';
+                        }
+                    }
+                });
+            });
+        });
+
+        observer.observe(document.body, { childList: true, subtree: true });
+
+        // ── Periodic cleanup: nuke any surviving overlays ────────────────────
+        function purgeOverlays() {
+            // Context menus
+            document.querySelectorAll('.gg_contextmenu, [class*="ggskin"]').forEach(function(el) {
+                el.style.cssText = 'display:none!important;';
+            });
+            // High-z-index divs that aren't the pano container itself
+            document.querySelectorAll('#pano-container > div').forEach(function(el) {
+                var z = parseInt(el.style.zIndex || '0', 10);
+                if (z > 1000) el.style.cssText = 'display:none!important;pointer-events:none!important;';
+            });
+        }
+
+        setInterval(purgeOverlays, 400);
+        window.addEventListener('load', purgeOverlays);
+    </script>
+
+    <noscript><p><b>Please enable JavaScript.</b></p></noscript>
+</body>
+</html>
