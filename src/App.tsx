@@ -566,6 +566,7 @@ function useGlyphs(): GlyphConfig[] {
 
 function PersonalLoading({ username, onDone }: { username: string; onDone: () => void }) {
   const glyphs = useGlyphs()
+  const firstName = username.trim().split(' ')[0]
 
   useEffect(() => {
     const t = setTimeout(onDone, 2400)
@@ -618,14 +619,15 @@ function PersonalLoading({ username, onDone }: { username: string; onDone: () =>
 
         {/* Greeting */}
         <h2
-          className="gradient-text-gold font-arabic"
+          className="font-arabic"
           style={{
             fontSize: 26,
             fontWeight: 700,
+            color: SAND_GOLD,
             textShadow: `0 0 20px ${SAND_GOLD}40`,
           }}
         >
-          <LetterByLetter text={`مرحباً، ${username}`} />
+          <LetterByLetter text={`مرحباً، ${firstName}`} />
         </h2>
 
         {/* Status */}
