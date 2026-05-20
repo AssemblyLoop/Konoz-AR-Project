@@ -3,8 +3,19 @@ import { createRoot } from 'react-dom/client'
 import './styles.css'
 import App from './App.tsx'
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-)
+if (window.location.pathname === '/siwa-oasis') {
+  // Render independent 360 page
+  createRoot(document.getElementById('root')!).render(
+    <iframe
+      src="/siwa-oasis/index.html"
+      style={{ width: '100vw', height: '100vh', border: 'none', margin: 0, padding: 0, display: 'block' }}
+      title="Siwa Oasis 360"
+    />
+  )
+} else {
+  createRoot(document.getElementById('root')!).render(
+    <StrictMode>
+      <App />
+    </StrictMode>,
+  )
+}
