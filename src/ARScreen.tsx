@@ -8,19 +8,25 @@ declare global {
   const SelfieSegmentation: any
 }
 
+// ── Brand Colors ─────────────────────────────────
+const SAND_GOLD  = '#E4CD96'
+const SKY_BLUE   = '#C1D8E8'
+const BROWN      = '#643A24'
+const BROWN_DEEP = '#3e2015'
+
 const FILTERS = [
-  { name: 'Trees',       src: '/backgrounds/trees_water.jpg', info: 'اكتشف جمال الأشجار المندمجة مع المياه الكريستالية، تجربة تعكس الهدوء والطبيعة الخلابة.' },
-  { name: 'Oasis',       src: '/backgrounds/oasis_wide.jpg', info: 'واحة طبيعية واسعة توفر لك مساحة للتأمل والاسترخاء في أحضان الطبيعة الدافئة.' },
-  { name: 'Salt Pool',   src: '/backgrounds/salt_pool.jpg', info: 'بركة الملح الغنية بالمعادن المفيدة للصحة، تجربة فريدة للاستشفاء الطبيعي.' },
-  { name: 'Lagoon',      src: '/backgrounds/blue_lagoon_wide.jpg', info: 'البحيرة الزرقاء الساحرة، مياه نقية ومناظر تريح العين وتهدئ الأعصاب.' },
-  { name: 'Clear Water', src: '/backgrounds/clear_water.jpg', info: 'مياه صافية تعكس نقاء الطبيعة، استمتع بصفاء الذهن والروح.' },
-  { name: 'Tent',        src: '/backgrounds/desert_tent.jpg', info: 'خيمة صحراوية أصيلة تأخذك في رحلة إلى عبق الماضي وسكون الصحراء.' },
-  { name: 'Salt Cave',   src: '/backgrounds/salt_cave_center.jpg', info: 'كهف الملح العلاجي، هواء مشبع باليود لتنقية الجهاز التنفسي والشعور بالانتعاش.' },
-  { name: 'Tunnel',      src: '/backgrounds/cave_tunnel.jpg', info: 'نفق صخري طبيعي ينقلك إلى عالم من المغامرات والاستكشاف.' },
-  { name: 'Gold Room',   src: '/backgrounds/gold_salt_room.jpg', info: 'غرفة الملح الذهبية المضاءة بشكل خافت لتوفير أقصى درجات الاسترخاء العلاجي.' },
-  { name: 'Mountain',    src: '/backgrounds/mountain_view.jpg', info: 'إطلالة جبلية شاهقة تمنحك شعوراً بالقوة والشموخ وتجدد طاقاتك.' },
-  { name: 'Stairs',      src: '/backgrounds/rock_stairs.jpg', info: 'درجات صخرية عتيقة تحكي قصصاً من الماضي وتقودك نحو آفاق جديدة.' },
-  { name: 'Hot Spring',  src: '/backgrounds/hot_spring.png', info: 'ينابيع المياه الساخنة الطبيعية، تجربة لا غنى عنها لراحة العضلات وتجديد الشباب.' },
+  { name: 'Trees',       src: '/backgrounds/trees_water.jpg',       info: 'اكتشف جمال الأشجار المندمجة مع المياه الكريستالية، تجربة تعكس الهدوء والطبيعة الخلابة.' },
+  { name: 'Oasis',       src: '/backgrounds/oasis_wide.jpg',        info: 'واحة طبيعية واسعة توفر لك مساحة للتأمل والاسترخاء في أحضان الطبيعة الدافئة.' },
+  { name: 'Salt Pool',   src: '/backgrounds/salt_pool.jpg',         info: 'بركة الملح الغنية بالمعادن المفيدة للصحة، تجربة فريدة للاستشفاء الطبيعي.' },
+  { name: 'Lagoon',      src: '/backgrounds/blue_lagoon_wide.jpg',  info: 'البحيرة الزرقاء الساحرة، مياه نقية ومناظر تريح العين وتهدئ الأعصاب.' },
+  { name: 'Clear Water', src: '/backgrounds/clear_water.jpg',       info: 'مياه صافية تعكس نقاء الطبيعة، استمتع بصفاء الذهن والروح.' },
+  { name: 'Tent',        src: '/backgrounds/desert_tent.jpg',       info: 'خيمة صحراوية أصيلة تأخذك في رحلة إلى عبق الماضي وسكون الصحراء.' },
+  { name: 'Salt Cave',   src: '/backgrounds/salt_cave_center.jpg',  info: 'كهف الملح العلاجي، هواء مشبع باليود لتنقية الجهاز التنفسي والشعور بالانتعاش.' },
+  { name: 'Tunnel',      src: '/backgrounds/cave_tunnel.jpg',       info: 'نفق صخري طبيعي ينقلك إلى عالم من المغامرات والاستكشاف.' },
+  { name: 'Gold Room',   src: '/backgrounds/gold_salt_room.jpg',    info: 'غرفة الملح الذهبية المضاءة بشكل خافت لتوفير أقصى درجات الاسترخاء العلاجي.' },
+  { name: 'Mountain',    src: '/backgrounds/mountain_view.jpg',     info: 'إطلالة جبلية شاهقة تمنحك شعوراً بالقوة والشموخ وتجدد طاقاتك.' },
+  { name: 'Stairs',      src: '/backgrounds/rock_stairs.jpg',       info: 'درجات صخرية عتيقة تحكي قصصاً من الماضي وتقودك نحو آفاق جديدة.' },
+  { name: 'Hot Spring',  src: '/backgrounds/hot_spring.png',        info: 'ينابيع المياه الساخنة الطبيعية، تجربة لا غنى عنها لراحة العضلات وتجديد الشباب.' },
 ]
 
 function coverRect(sW: number, sH: number, dW: number, dH: number) {
@@ -35,9 +41,8 @@ export default function ARScreen({ username }: { username: string }) {
   const [showInfo, setShowInfo]     = useState<number | null>(null)
   const [status, setStatus]         = useState('')
 
-  useEffect(() => {
-    filterIdxRef.current = filterIdx
-  }, [filterIdx])
+  useEffect(() => { filterIdxRef.current = filterIdx }, [filterIdx])
+
   const [running, setRunning]       = useState(false)
   const [loading, setLoading]       = useState(false)
   const [facingMode, setFacingMode] = useState<'user'|'environment'>('user')
@@ -54,7 +59,6 @@ export default function ARScreen({ username }: { username: string }) {
   const busyRef       = useRef(false)
   const imgCacheRef   = useRef<Map<string, Promise<HTMLImageElement>>>(new Map())
 
-  // Load image helper
   const loadImg = useCallback((src: string): Promise<HTMLImageElement> => {
     if (!imgCacheRef.current.has(src)) {
       const p = new Promise<HTMLImageElement>((res, rej) => {
@@ -65,7 +69,6 @@ export default function ARScreen({ username }: { username: string }) {
     return imgCacheRef.current.get(src)!
   }, [])
 
-  // Resize output canvas
   const resizeOutput = useCallback(() => {
     const canvas = outputRef.current; if (!canvas) return
     const dpr = Math.min(window.devicePixelRatio || 1, 2)
@@ -74,7 +77,6 @@ export default function ARScreen({ username }: { username: string }) {
     if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h }
   }, [])
 
-  // Segmentation result callback
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const onResults = useCallback(async (results: any) => {
     const out = outputRef.current
@@ -95,13 +97,12 @@ export default function ARScreen({ username }: { username: string }) {
     const bgImg = await loadImg(FILTERS[filterIdxRef.current].src)
     const bgR = coverRect(bgImg.naturalWidth, bgImg.naturalHeight, w, h)
 
-    // Scale person to 60% of canvas height, anchored bottom-center (zoomed-out feel)
     const personScale = 0.60
     const personH = h * personScale
     const personAspect = video.videoWidth / video.videoHeight
     const personW = personH * personAspect
     const personX = (w - personW) / 2
-    const personY = h - personH  // anchor to bottom
+    const personY = h - personH
 
     bCtx.clearRect(0, 0, w, h)
     bCtx.drawImage(bgImg, bgR.x, bgR.y, bgR.w, bgR.h)
@@ -119,16 +120,13 @@ export default function ARScreen({ username }: { username: string }) {
     ctx.drawImage(person, 0, 0)
   }, [loadImg, resizeOutput])
 
-  // Start camera + segmenter
   const startCamera = useCallback(async (facing: 'user'|'environment') => {
     setLoading(true)
     setStatus('جاري تشغيل الكاميرا...')
     try {
-      // Stop previous stream
       streamRef.current?.getTracks().forEach(t => t.stop())
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
 
-      // Init segmenter
       if (!segRef.current) {
         const s = new SelfieSegmentation({
           locateFile: (f: string) =>
@@ -183,7 +181,7 @@ export default function ARScreen({ username }: { username: string }) {
   const capture = useCallback(() => {
     const canvas = outputRef.current; if (!canvas) return
     setShowFlash(true)
-    setTimeout(() => setShowFlash(false), 250)
+    setTimeout(() => setShowFlash(false), 260)
     canvas.toBlob(blob => {
       if (!blob) return
       if (photoUrl) URL.revokeObjectURL(photoUrl)
@@ -197,7 +195,6 @@ export default function ARScreen({ username }: { username: string }) {
     const a = document.createElement('a'); a.href = photoUrl; a.download = 'konoz-ar.png'; a.click()
   }, [photoUrl])
 
-  // Cleanup
   useEffect(() => () => {
     streamRef.current?.getTracks().forEach(t => t.stop())
     if (rafRef.current) cancelAnimationFrame(rafRef.current)
@@ -211,23 +208,32 @@ export default function ARScreen({ username }: { username: string }) {
     return () => window.removeEventListener('resize', resizeOutput)
   }, [resizeOutput])
 
+  // ── Shared style helpers ──
+  const glassPanel = {
+    background: 'rgba(10, 6, 4, 0.55)',
+    backdropFilter: 'blur(20px) saturate(1.3)',
+    WebkitBackdropFilter: 'blur(20px) saturate(1.3)',
+    border: `1px solid ${SAND_GOLD}22`,
+    borderRadius: 9999,
+  } as const
+
+  const goldBtnShadow = `0 0 18px ${SAND_GOLD}30, 0 4px 12px rgba(0,0,0,0.35)`
+
   return (
     <motion.section
       key="main"
       className="absolute inset-0"
       initial={{ opacity: 0, filter: 'blur(20px)' }}
-      animate={{ opacity: 1, filter: 'blur(0px)', transition: { duration: 0.85, ease: [0.22,1,0.36,1] } }}
+      animate={{ opacity: 1, filter: 'blur(0px)', transition: { duration: 0.85, ease: [0.22, 1, 0.36, 1] } }}
       exit={{ opacity: 0, filter: 'blur(20px)', transition: { duration: 0.6, ease: 'easeIn' } }}
       aria-label="شاشة الكاميرا AR"
     >
-      {/* Hidden video element */}
+      {/* Hidden elements */}
       <video ref={videoRef} style={{ display: 'none' }} playsInline muted />
-
-      {/* Hidden off-screen canvases */}
       <canvas ref={personRef} style={{ display: 'none' }} />
       <canvas ref={bgRef} style={{ display: 'none' }} />
 
-      {/* Main output canvas — full screen */}
+      {/* Main canvas */}
       <canvas
         ref={outputRef}
         style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
@@ -238,47 +244,75 @@ export default function ARScreen({ username }: { username: string }) {
       {!running && (
         <div style={{
           position: 'absolute', inset: 0, zIndex: 40,
-          background: 'radial-gradient(ellipse 80% 80% at 50% 50%, oklch(0.10 0.04 195) 0%, oklch(0.08 0.02 220) 50%, #000 100%)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center'
+          background: `radial-gradient(ellipse 80% 80% at 50% 50%, ${BROWN_DEEP}cc 0%, #0a0604 55%, #020101 100%)`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
             style={{
-              background: 'rgba(255, 255, 255, 0.05)',
-              backdropFilter: 'blur(20px)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              padding: '32px 24px',
-              borderRadius: '24px',
+              background: `rgba(100, 58, 36, 0.12)`,
+              backdropFilter: 'blur(24px)',
+              WebkitBackdropFilter: 'blur(24px)',
+              border: `1px solid ${SAND_GOLD}20`,
+              padding: '36px 28px',
+              borderRadius: '28px',
               textAlign: 'center',
-              maxWidth: '320px',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.3)'
+              maxWidth: '340px',
+              width: '90%',
+              boxShadow: `0 30px 70px rgba(0,0,0,0.45), 0 0 60px ${BROWN}18`,
             }}
           >
-            <Camera size={48} color="oklch(0.82 0.14 85)" style={{ margin: '0 auto 16px' }} />
-            <h3 style={{ fontSize: '20px', marginBottom: '8px', color: 'white', fontFamily: "'Tajawal', system-ui", fontWeight: 700 }}>
+            {/* Logo */}
+            <motion.div
+              style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}
+              animate={{ y: [0, -5, 0], opacity: [0.8, 1, 0.8] }}
+              transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+            >
+              <img
+                src="/konoz-logo.png"
+                alt="كنوز"
+                style={{ width: 70, height: 70, objectFit: 'contain',
+                  filter: `drop-shadow(0 0 16px ${SAND_GOLD}50)` }}
+              />
+            </motion.div>
+
+            <Camera size={36} color={SAND_GOLD} style={{ margin: '0 auto 14px' }} />
+            <h3 style={{
+              fontSize: '20px', marginBottom: '10px', color: 'white',
+              fontFamily: 'var(--font-arabic)', fontWeight: 700,
+            }}>
               الوصول للكاميرا
             </h3>
-            <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.7)', marginBottom: '24px', fontFamily: "'Tajawal', system-ui", lineHeight: 1.6 }}>
+            <p style={{
+              fontSize: '14px', color: 'rgba(245,239,227,0.65)',
+              marginBottom: '28px', fontFamily: 'var(--font-arabic)', lineHeight: 1.7,
+            }}>
               لخوض تجربة الواقع المعزز، يرجى السماح للتطبيق باستخدام الكاميرا.
             </p>
             <motion.button
+              id="allow-camera-btn"
               onClick={() => startCamera(facingMode)}
               disabled={loading}
               whileTap={{ scale: 0.95 }}
+              whileHover={{ scale: 1.02 }}
               style={{
-                background: 'linear-gradient(135deg, oklch(0.78 0.14 195), oklch(0.82 0.14 85))',
-                color: '#0a1a1a', border: 'none', padding: '14px 24px', borderRadius: '999px',
-                fontSize: '16px', fontWeight: 'bold', fontFamily: "'Tajawal', system-ui",
+                background: `linear-gradient(135deg, ${SAND_GOLD} 0%, #c9a96e 100%)`,
+                color: BROWN_DEEP, border: 'none', padding: '14px 24px', borderRadius: '999px',
+                fontSize: '16px', fontWeight: 'bold', fontFamily: 'var(--font-arabic)',
                 cursor: 'pointer', width: '100%',
-                display: 'flex', justifyContent: 'center', alignItems: 'center'
+                display: 'flex', justifyContent: 'center', alignItems: 'center',
+                boxShadow: goldBtnShadow,
               }}
             >
               {loading ? (
-                <motion.div style={{ width: 20, height: 20, borderRadius: '50%', border: '2px solid rgba(0,0,0,0.2)', borderTopColor: '#0a1a1a' }} animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }} />
-              ) : (
-                'السماح للكاميرا'
-              )}
+                <motion.div
+                  style={{ width: 20, height: 20, borderRadius: '50%', border: `2px solid ${BROWN_DEEP}30`, borderTopColor: BROWN_DEEP }}
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                />
+              ) : 'السماح للكاميرا'}
             </motion.button>
           </motion.div>
         </div>
@@ -287,8 +321,12 @@ export default function ARScreen({ username }: { username: string }) {
       {/* Flash overlay */}
       <AnimatePresence>
         {showFlash && (
-          <motion.div key="flash" style={{ position:'absolute',inset:0,background:'white',zIndex:50,pointerEvents:'none' }}
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }} />
+          <motion.div
+            key="flash"
+            style={{ position: 'absolute', inset: 0, background: 'rgba(228,205,150,0.35)', zIndex: 50, pointerEvents: 'none' }}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            transition={{ duration: 0.26 }}
+          />
         )}
       </AnimatePresence>
 
@@ -296,109 +334,152 @@ export default function ARScreen({ username }: { username: string }) {
       <div style={{
         position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        paddingTop: 'max(14px, env(safe-area-inset-top, 14px))',
-        paddingLeft: 14, paddingRight: 14, paddingBottom: 10,
+        paddingTop: 'max(16px, env(safe-area-inset-top, 16px))',
+        paddingLeft: 16, paddingRight: 16, paddingBottom: 12,
         pointerEvents: 'none',
       }}>
-        {/* Greeting (Right side in RTL) */}
-        <div style={{ pointerEvents: 'auto', maxWidth: '35%', overflow: 'hidden', paddingTop: 2 }}>
+        {/* Greeting */}
+        <div style={{ pointerEvents: 'auto', maxWidth: '38%', overflow: 'hidden' }}>
           <motion.div
-            initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4 }}
-            style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', fontFamily: "'Tajawal', system-ui", whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.4 }}
+            style={{
+              ...glassPanel,
+              padding: '6px 14px',
+              fontSize: 13,
+              color: `${SAND_GOLD}cc`,
+              fontFamily: 'var(--font-arabic)',
+              whiteSpace: 'nowrap',
+              textOverflow: 'ellipsis',
+              overflow: 'hidden',
+            }}
           >
             مرحباً، {username}
           </motion.div>
         </div>
 
-        {/* LIVE chip (Center absolute for perfect mobile centering) */}
+        {/* Center: كنوز logo chip + LIVE */}
         <div style={{
           position: 'absolute', left: '50%', transform: 'translateX(-50%)',
-          top: 'max(14px, env(safe-area-inset-top, 14px))', pointerEvents: 'auto',
-          display: 'flex', justifyContent: 'center'
+          top: 'max(16px, env(safe-area-inset-top, 16px))',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+          pointerEvents: 'auto',
         }}>
           <div style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            background: 'rgba(255,255,255,0.10)', backdropFilter: 'blur(16px)',
-            border: '1px solid rgba(255,255,255,0.15)', borderRadius: 9999,
-            padding: '6px 12px',
+            display: 'flex', alignItems: 'center', gap: 8,
+            ...glassPanel,
+            padding: '6px 14px',
           }}>
+            <img
+              src="/konoz-logo.png"
+              alt="كنوز"
+              style={{ width: 22, height: 22, objectFit: 'contain',
+                filter: `drop-shadow(0 0 6px ${SAND_GOLD}80)` }}
+            />
             <motion.div
-              style={{ width: 7, height: 7, borderRadius: '50%', background: running ? '#ff3b3b' : '#888', boxShadow: running ? '0 0 8px #ff3b3baa' : 'none' }}
-              animate={running ? { opacity: [1,0.3,1] } : { opacity: 1 }}
+              style={{
+                width: 6, height: 6, borderRadius: '50%',
+                background: running ? '#ff5f5f' : '#888',
+                boxShadow: running ? '0 0 8px #ff5f5faa' : 'none',
+              }}
+              animate={running ? { opacity: [1, 0.3, 1] } : { opacity: 1 }}
               transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
             />
-            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.15em', color: 'rgba(255,255,255,0.9)' }}>AR مباشر</span>
-            <Radio size={14} color="rgba(255,255,255,0.6)" />
+            <span style={{
+              fontSize: 10, fontWeight: 700, letterSpacing: '0.18em',
+              color: running ? 'rgba(245,239,227,0.9)' : 'rgba(245,239,227,0.5)',
+              fontFamily: 'var(--font-ui)',
+            }}>
+              {running ? 'AR مباشر' : 'غير نشط'}
+            </span>
+            <Radio size={12} color={`${SAND_GOLD}90`} />
           </div>
         </div>
 
-        {/* Flip camera (Left side in RTL) */}
+        {/* Flip camera */}
         <div style={{ pointerEvents: 'auto', flexShrink: 0 }}>
           <motion.button
+            id="flip-camera-btn"
             onClick={flipCamera}
-            className="glass-btn" style={{ width: 44, height: 44 }}
-            whileTap={{ scale: 0.92, rotate: 180 }}
+            className="glass-btn"
+            style={{
+              width: 46, height: 46,
+              border: `1px solid ${SAND_GOLD}22`,
+              boxShadow: `0 4px 16px rgba(0,0,0,0.3)`,
+            }}
+            whileTap={{ scale: 0.88, rotate: 180 }}
+            whileHover={{ boxShadow: `0 0 16px ${SAND_GOLD}25, 0 4px 16px rgba(0,0,0,0.3)` }}
             aria-label="قلب الكاميرا"
           >
-            <RefreshCcw size={18} color="rgba(255,255,255,0.85)" />
+            <RefreshCcw size={18} color={`${SAND_GOLD}cc`} />
           </motion.button>
         </div>
       </div>
 
       {/* ── Filter carousel ── */}
-      <div style={{
-        position: 'absolute', left: 0, right: 0, bottom: 130, zIndex: 20,
-      }}>
+      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 136, zIndex: 20 }}>
         <div
           className="no-scrollbar"
           style={{
-            display: 'flex', gap: 14, overflowX: 'auto', padding: '8px 24px',
-            scrollSnapType: 'x mandatory', direction: 'ltr',
+            display: 'flex', gap: 14, overflowX: 'auto',
+            padding: '10px 24px', scrollSnapType: 'x mandatory', direction: 'ltr',
           }}
-          role="listbox" aria-label="اختر خلفية"
+          role="listbox"
+          aria-label="اختر خلفية"
         >
           {FILTERS.map((f, i) => {
             const active = filterIdx === i
             return (
               <motion.button
                 key={f.name}
+                id={`filter-btn-${i}`}
                 onClick={() => {
                   if (active) setShowInfo(i)
                   else setFilterIdx(i)
                 }}
-                role="option" aria-selected={active}
+                role="option"
+                aria-selected={active}
                 style={{ scrollSnapAlign: 'center', flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                whileTap={{ scale: 0.9 }}
+                whileTap={{ scale: 0.88 }}
+                whileHover={{ scale: active ? 1.18 : 1.06 }}
               >
                 <motion.div
                   animate={{ scale: active ? 1.15 : 1 }}
-                  transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                  transition={{ type: 'spring', stiffness: 320, damping: 22 }}
                   style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}
                 >
-                  <div style={{ position: 'relative', width: 60, height: 60, borderRadius: '50%' }}>
+                  <div style={{ position: 'relative', width: 62, height: 62, borderRadius: '50%' }}>
                     <div style={{
                       width: '100%', height: '100%', borderRadius: '50%',
                       backgroundImage: `url('${f.src}')`,
                       backgroundSize: 'cover', backgroundPosition: 'center',
-                      border: active ? '3px solid oklch(0.82 0.14 85)' : '2px solid rgba(255,255,255,0.2)',
-                      boxShadow: active ? '0 0 0 2px oklch(0.78 0.14 195), 0 0 18px oklch(0.82 0.14 85 / 0.5)' : '0 4px 12px rgba(0,0,0,0.3)',
-                      transition: 'border 0.2s, box-shadow 0.2s',
+                      border: active ? `2.5px solid ${SAND_GOLD}` : `1.5px solid rgba(255,255,255,0.18)`,
+                      boxShadow: active
+                        ? `0 0 0 2px ${SKY_BLUE}50, 0 0 22px ${SAND_GOLD}45, 0 4px 16px rgba(0,0,0,0.4)`
+                        : '0 4px 14px rgba(0,0,0,0.35)',
+                      transition: 'border 0.25s, box-shadow 0.25s',
                     }} />
                     {active && (
                       <div style={{
-                        position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)', borderRadius: '50%',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center'
+                        position: 'absolute', inset: 0,
+                        background: 'rgba(0,0,0,0.45)', borderRadius: '50%',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
                       }}>
-                        <Info size={24} color="#ffffff" />
+                        <Info size={22} color={SAND_GOLD} />
                       </div>
                     )}
                   </div>
                   <span style={{
                     fontSize: 10, whiteSpace: 'nowrap',
-                    color: active ? 'oklch(0.82 0.14 85)' : 'rgba(255,255,255,0.55)',
-                    fontFamily: "'Tajawal', system-ui",
+                    color: active ? SAND_GOLD : 'rgba(245,239,227,0.45)',
+                    fontFamily: 'var(--font-ui)',
                     fontWeight: active ? 700 : 400,
-                  }}>{f.name}</span>
+                    textShadow: active ? `0 0 10px ${SAND_GOLD}60` : 'none',
+                    transition: 'color 0.25s',
+                  }}>
+                    {f.name}
+                  </span>
                 </motion.div>
               </motion.button>
             )
@@ -406,55 +487,84 @@ export default function ARScreen({ username }: { username: string }) {
         </div>
       </div>
 
-      {/* ── Bottom bar: Download | Shutter | Flip ── */}
+      {/* ── Bottom bar ── */}
       <div style={{
         position: 'absolute', left: 0, right: 0, zIndex: 20,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '0 32px', bottom: 'max(28px, env(safe-area-inset-bottom, 28px))',
+        padding: '0 36px',
+        bottom: 'max(30px, env(safe-area-inset-bottom, 30px))',
       }}>
         {/* Download */}
         <motion.button
+          id="download-photo-btn"
           onClick={downloadPhoto}
-          className="glass-btn" style={{ width: 52, height: 52 }}
-          whileTap={{ scale: 0.92 }}
+          className="glass-btn"
+          style={{
+            width: 54, height: 54,
+            border: `1px solid ${SAND_GOLD}22`,
+            boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+          }}
+          whileTap={{ scale: 0.9 }}
+          whileHover={{ boxShadow: `0 0 18px ${SAND_GOLD}30, 0 4px 16px rgba(0,0,0,0.3)` }}
           aria-label="تحميل آخر صورة"
         >
-          <Download size={22} color="rgba(255,255,255,0.85)" />
+          <Download size={22} color={`${SAND_GOLD}cc`} />
         </motion.button>
 
         {/* Shutter / Start */}
         {running ? (
           <motion.button
+            id="shutter-btn"
             onClick={capture}
             aria-label="التقاط صورة"
-            style={{ position: 'relative', width: 84, height: 84, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-            whileTap={{ scale: 0.94 }}
+            style={{ position: 'relative', width: 88, height: 88, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            whileTap={{ scale: 0.92 }}
+            whileHover={{ scale: 1.04 }}
           >
-            <motion.div style={{ position:'absolute',inset:0,borderRadius:'50%',background:'linear-gradient(135deg, oklch(0.82 0.14 85), oklch(0.70 0.12 85))',boxShadow:'0 0 20px oklch(0.82 0.14 85 / 0.4)' }} animate={{ rotate: 360 }} transition={{ duration: 8, repeat: Infinity, ease: 'linear' }} />
-            <div style={{ position:'absolute',inset:6,borderRadius:'50%',background:'rgba(255,255,255,0.3)' }} />
-            <div style={{ position:'absolute',inset:12,borderRadius:'50%',background:'#ffffff' }} />
+            {/* Rotating outer ring */}
+            <motion.div
+              style={{
+                position: 'absolute', inset: 0, borderRadius: '50%',
+                background: `conic-gradient(${SAND_GOLD}, ${SKY_BLUE}, ${SAND_GOLD})`,
+                boxShadow: `0 0 28px ${SAND_GOLD}50, 0 0 8px ${SKY_BLUE}30`,
+              }}
+              animate={{ rotate: 360 }}
+              transition={{ duration: 6, repeat: Infinity, ease: 'linear' }}
+            />
+            {/* Middle ring */}
+            <div style={{ position: 'absolute', inset: 3, borderRadius: '50%', background: '#0a0604' }} />
+            {/* Inner white */}
+            <div style={{
+              position: 'absolute', inset: 8, borderRadius: '50%',
+              background: 'white',
+              boxShadow: `0 0 12px rgba(255,255,255,0.4)`,
+            }} />
           </motion.button>
         ) : (
-          <div style={{ width: 84, height: 84 }} />
+          <div style={{ width: 88, height: 88 }} />
         )}
 
-        {/* Placeholder right side */}
-        <div style={{ width: 52 }} />
+        {/* Spacer */}
+        <div style={{ width: 54 }} />
       </div>
 
       {/* ── Status pill ── */}
       <AnimatePresence>
-        {status && (
+        {status && status.trim() && (
           <motion.div
             key={status}
-            initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 6 }} transition={{ duration: 0.3 }}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 8 }}
+            transition={{ duration: 0.3 }}
             style={{
-              position: 'absolute', bottom: 'max(10px, env(safe-area-inset-bottom,10px))', left: '50%', transform: 'translateX(-50%)',
-              background: 'rgba(5,12,18,0.6)', backdropFilter: 'blur(12px)',
-              border: '1px solid rgba(255,255,255,0.14)', borderRadius: 9999,
-              padding: '7px 18px', zIndex: 15,
-              fontSize: 11, color: 'rgba(255,255,255,0.8)', whiteSpace: 'nowrap',
-              fontFamily: "'Tajawal', system-ui",
+              position: 'absolute',
+              bottom: 'max(12px, env(safe-area-inset-bottom,12px))',
+              left: '50%', transform: 'translateX(-50%)',
+              ...glassPanel,
+              padding: '8px 20px', zIndex: 15,
+              fontSize: 12, color: `${SAND_GOLD}cc`, whiteSpace: 'nowrap',
+              fontFamily: 'var(--font-arabic)',
             }}
           >
             {status}
@@ -467,33 +577,68 @@ export default function ARScreen({ username }: { username: string }) {
         {showInfo !== null && (
           <motion.div
             key="info-modal"
-            style={{ position:'absolute',inset:0,zIndex:40,display:'grid',placeItems:'center', background:'rgba(0,0,0,0.25)',backdropFilter:'blur(6px)', padding:'20px' }}
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            style={{
+              position: 'absolute', inset: 0, zIndex: 40,
+              display: 'grid', placeItems: 'center',
+              background: 'rgba(0,0,0,0.35)',
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
+              padding: '20px',
+            }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             onClick={() => setShowInfo(null)}
           >
             <motion.div
-              initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
+              initial={{ scale: 0.88, y: 24 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.88, y: 24 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 24 }}
               style={{
-                background: 'rgba(8, 14, 20, 0.55)', backdropFilter: 'blur(24px)',
-                border: '1px solid rgba(255,255,255,0.12)',
-                padding: '28px 24px', borderRadius: '24px', maxWidth: '340px', width: '100%',
-                boxShadow: '0 20px 50px rgba(0,0,0,0.35)', textAlign: 'center'
+                background: `rgba(10, 6, 4, 0.72)`,
+                backdropFilter: 'blur(28px)',
+                WebkitBackdropFilter: 'blur(28px)',
+                border: `1px solid ${SAND_GOLD}25`,
+                padding: '32px 26px', borderRadius: '28px',
+                maxWidth: '360px', width: '100%',
+                boxShadow: `0 30px 70px rgba(0,0,0,0.5), 0 0 60px ${BROWN}20`,
+                textAlign: 'center',
               }}
               onClick={e => e.stopPropagation()}
             >
-              <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 64, height: 64, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', marginBottom: 20 }}>
-                <Info size={32} color="oklch(0.82 0.14 85)" />
-              </div>
-              <h3 style={{ margin: '0 0 12px', fontSize: 24, color: 'white', fontFamily: "'Tajawal', system-ui", fontWeight: 700 }}>
+              {/* Filter thumbnail */}
+              <div style={{
+                width: 80, height: 80, borderRadius: '50%', margin: '0 auto 20px',
+                backgroundImage: `url('${FILTERS[showInfo].src}')`,
+                backgroundSize: 'cover', backgroundPosition: 'center',
+                border: `2px solid ${SAND_GOLD}50`,
+                boxShadow: `0 0 30px ${SAND_GOLD}25`,
+              }} />
+              <h3 style={{ margin: '0 0 14px', fontSize: 22, color: 'white', fontFamily: 'var(--font-arabic)', fontWeight: 700 }}>
                 {FILTERS[showInfo].name}
               </h3>
-              <p style={{ margin: 0, fontSize: 15, color: 'rgba(255,255,255,0.75)', lineHeight: 1.6, fontFamily: "'Tajawal', system-ui" }}>
+              {/* Divider */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, justifyContent: 'center' }}>
+                <div style={{ flex: 1, height: 1, background: `linear-gradient(90deg, transparent, ${SAND_GOLD}40, transparent)` }} />
+                <span style={{ color: SAND_GOLD, fontSize: 12, opacity: 0.5 }}>𓆣</span>
+                <div style={{ flex: 1, height: 1, background: `linear-gradient(90deg, transparent, ${SAND_GOLD}40, transparent)` }} />
+              </div>
+              <p style={{ margin: '0 0 28px', fontSize: 15, color: 'rgba(245,239,227,0.72)', lineHeight: 1.75, fontFamily: 'var(--font-arabic)' }}>
                 {FILTERS[showInfo].info}
               </p>
               <motion.button
+                id="info-modal-close-btn"
                 onClick={() => setShowInfo(null)}
                 whileTap={{ scale: 0.95 }}
-                style={{ marginTop: 28, width: '100%', padding: '14px', borderRadius: 999, border: 'none', background: 'linear-gradient(135deg, oklch(0.78 0.14 195), oklch(0.82 0.14 85))', color: '#0a1a1a', fontWeight: 700, fontSize: 16, fontFamily: "'Tajawal', system-ui", cursor: 'pointer' }}
+                whileHover={{ scale: 1.02 }}
+                style={{
+                  width: '100%', padding: '14px', borderRadius: 9999, border: 'none',
+                  background: `linear-gradient(135deg, ${SAND_GOLD} 0%, #c9a96e 100%)`,
+                  color: BROWN_DEEP, fontWeight: 700, fontSize: 16,
+                  fontFamily: 'var(--font-arabic)', cursor: 'pointer',
+                  boxShadow: goldBtnShadow,
+                }}
               >
                 استمرار
               </motion.button>
@@ -507,40 +652,94 @@ export default function ARScreen({ username }: { username: string }) {
         {photoUrl && (
           <motion.div
             key="photo-modal"
-            style={{ position:'absolute',inset:0,zIndex:40,display:'grid',placeItems:'center', background:'rgba(0,0,0,0.7)',backdropFilter:'blur(20px)', padding:'max(18px, env(safe-area-inset-top,18px)) 18px max(18px, env(safe-area-inset-bottom,18px))' }}
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            style={{
+              position: 'absolute', inset: 0, zIndex: 40, display: 'grid', placeItems: 'center',
+              background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)',
+              padding: 'max(20px, env(safe-area-inset-top,20px)) 18px max(20px, env(safe-area-inset-bottom,20px))',
+            }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
           >
             <motion.div
-              initial={{ scale: 0.88, y: 40 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.88, y: 40 }}
+              initial={{ scale: 0.88, y: 40 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.88, y: 40 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 26 }}
               style={{
                 width: 'min(900px, 96vw)', borderRadius: 24, padding: 16,
-                background: 'linear-gradient(180deg, rgba(255,255,255,0.15), rgba(255,255,255,0.08))',
-                border: '1px solid rgba(255,255,255,0.2)', boxShadow: '0 30px 80px rgba(0,0,0,0.55)',
+                background: `rgba(10, 6, 4, 0.65)`,
+                backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)',
+                border: `1px solid ${SAND_GOLD}22`,
+                boxShadow: `0 30px 80px rgba(0,0,0,0.6), 0 0 60px ${BROWN}15`,
               }}
             >
               {/* Header */}
-              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', paddingBottom: 12 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 14 }}>
                 <div>
-                  <p style={{ margin:0, color:'oklch(0.78 0.14 195)', fontSize:10, letterSpacing:2, fontWeight:900, textTransform:'uppercase' }}>Normal Capture</p>
-                  <h2 style={{ margin:'4px 0 0', fontSize: 20, color:'#fff', fontFamily:"'Tajawal',system-ui" }}>الصورة مع الخلفية</h2>
+                  <p style={{ margin: 0, color: `${SKY_BLUE}cc`, fontSize: 10, letterSpacing: 2, fontWeight: 700, textTransform: 'uppercase', fontFamily: 'var(--font-ui)' }}>
+                    KONOZ AR CAPTURE
+                  </p>
+                  <h2 style={{ margin: '5px 0 0', fontSize: 20, color: '#fff', fontFamily: 'var(--font-arabic)' }}>
+                    الصورة مع الخلفية
+                  </h2>
                 </div>
-                <motion.button onClick={() => setPhotoUrl(null)} className="glass-btn" style={{ width:42,height:42 }} whileTap={{ scale:0.9 }} aria-label="إغلاق">
-                  <X size={18} color="rgba(255,255,255,0.85)" />
+                <motion.button
+                  id="close-photo-modal-btn"
+                  onClick={() => setPhotoUrl(null)}
+                  className="glass-btn"
+                  style={{ width: 44, height: 44, border: `1px solid ${SAND_GOLD}20` }}
+                  whileTap={{ scale: 0.9 }}
+                  aria-label="إغلاق"
+                >
+                  <X size={18} color={`${SAND_GOLD}cc`} />
                 </motion.button>
               </div>
 
               {/* Preview */}
-              <img src={photoUrl} alt="الصورة الملتقطة" style={{ display:'block',width:'100%',maxHeight:'min(60vh,560px)',objectFit:'contain',borderRadius:16,background:'#111' }} />
+              <img
+                src={photoUrl}
+                alt="الصورة الملتقطة"
+                style={{
+                  display: 'block', width: '100%',
+                  maxHeight: 'min(60vh,560px)', objectFit: 'contain',
+                  borderRadius: 16, background: '#0a0604',
+                  border: `1px solid ${SAND_GOLD}15`,
+                }}
+              />
 
               {/* Actions */}
-              <div style={{ display:'flex', justifyContent:'flex-end', gap:10, paddingTop:14 }}>
-                <motion.button onClick={() => setPhotoUrl(null)} whileTap={{ scale:0.95 }}
-                  style={{ padding:'12px 22px',borderRadius:9999,border:'none',background:'rgba(255,255,255,0.13)',color:'#fff',fontWeight:700,cursor:'pointer',fontFamily:"'Tajawal',system-ui" }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, paddingTop: 14 }}>
+                <motion.button
+                  id="retake-photo-btn"
+                  onClick={() => setPhotoUrl(null)}
+                  whileTap={{ scale: 0.95 }}
+                  style={{
+                    padding: '12px 22px', borderRadius: 9999, border: `1px solid ${SAND_GOLD}20`,
+                    background: 'rgba(228,205,150,0.07)', color: `${SAND_GOLD}cc`,
+                    fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-arabic)',
+                    backdropFilter: 'blur(8px)',
+                  }}
+                >
                   إعادة التصوير
                 </motion.button>
-                <motion.a href={photoUrl} download="konoz-ar.png" whileTap={{ scale:0.95 }}
-                  style={{ padding:'12px 22px',borderRadius:9999,background:'oklch(0.78 0.14 195)',color:'#0a1a1a',fontWeight:700,textDecoration:'none',display:'flex',alignItems:'center',gap:6,fontFamily:"'Tajawal',system-ui" }}>
-                  <Download size={16} /> حفظ الصورة
+                <motion.a
+                  id="save-photo-btn"
+                  href={photoUrl}
+                  download="konoz-ar.png"
+                  whileTap={{ scale: 0.95 }}
+                  whileHover={{ scale: 1.02 }}
+                  style={{
+                    padding: '12px 22px', borderRadius: 9999,
+                    background: `linear-gradient(135deg, ${SAND_GOLD} 0%, #c9a96e 100%)`,
+                    color: BROWN_DEEP, fontWeight: 700, textDecoration: 'none',
+                    display: 'flex', alignItems: 'center', gap: 7,
+                    fontFamily: 'var(--font-arabic)', fontSize: 15,
+                    boxShadow: goldBtnShadow,
+                  }}
+                >
+                  <Download size={16} />
+                  حفظ الصورة
                 </motion.a>
               </div>
             </motion.div>
