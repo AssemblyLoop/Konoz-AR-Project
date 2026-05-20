@@ -1,0 +1,124 @@
+/* fix for scroll bars on webkit & >=Mac OS X Lion */ 
+			::-webkit-scrollbar {
+				background-color: rgba(0,0,0,0.5);
+				width: 0.75em;
+			}
+			::-webkit-scrollbar-thumb {
+    			background-color:  rgba(255,255,255,0.5);
+			}
+.side_bar{
+    background-color:#00000000; height:100%; position:absolute;  top:0px; padding-left:0px; 
+    transition: all 0.5s ease-in-out;
+}
+ .side_bar500{
+       left:-120px;
+        width:100%;
+    }
+@media(min-width : 1200px){
+    .side_bar{
+       left:-315px;
+        width:350px;
+    }
+}
+@media(max-width : 1199px) and (min-width :750px ){ 
+    .side_bar{
+       left:-250px;
+        width:300px;
+    }
+}
+@media(max-width : 749px) and (min-width :500px ){ 
+    .side_bar{
+       left:-217px;
+        width:270px;
+    }
+    .imgconta{
+        width: 87%;
+    }
+}
+@media(max-width : 499px) { 
+    .side_bar{
+       left:-265px;
+        width:300px;
+    }
+}
+@media(max-width : 300px) { 
+    .side_bar{
+       left:-215px;
+        width:250px;
+    }
+}
+.menue_ic{
+    position: absolute;
+    right: 7px;
+    font-size: 20px;
+    color: #467677;
+    cursor: pointer;
+}
+.fas2, .fas1{
+    transition: all 0.2s;
+}
+.fas2{
+        position: absolute;
+    top: 16px;
+    left: 0px;
+
+}
+.fas2_transform{
+    transform: rotate(-45deg);
+    top: 6px;
+}
+.fas1_transform{
+    transform: rotate(45deg);
+}
+.left_po{
+    left: 0px;
+}
+.displaynon{
+    display: none;
+}
+.float_ri{
+    float: right;
+}
+.drop_down_conta{
+    width: 86%;
+    float: left;
+    position: absolute;
+    overflow-y: scroll;
+    background-color: #b8daff;
+}
+.drop_down_conta li{
+      cursor: pointer;
+}
+.drop_menue{
+     width: 100%;
+    margin: 0 auto;
+    border:2px solid #b5b5b5;
+    height: 2000px;
+    position: relative;
+    background-color: #7f7f7f;
+}
+.side_bar img{
+    position: relative;
+    width: 90%;
+    margin: 0 auto;
+}
+.submenue_1, .submenue_2, .submenue_3{
+    width: 90%;
+    border: 1px solid #ececfb;
+    margin: 0 auto;
+    transition: all 0.5s ease-in-out;
+}
+
+.height_au{
+    height: auto;
+    transition: all 0.3 ;
+}
+.container-fluid{
+   max-width: 45px;
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    z-index: 2000;
+    height: 100%;
+
+}

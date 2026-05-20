@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tour apprev="17950" start="node5" appversion="6.1.6">
+  <panorama id="node5" hideabout="1">
+    <input width="1344" leveltileurl="/cleopatras-path/tiles/node5/cf_%c/l_%l/c_%x/tile_%y.jpg" height="1344" leveltilesize="510" levelingpitch="-4.16443" levelbiashidpi="1.000" levelingroll="4.7686" levelbias="0.400" overlap="1">
+      <level width="1344" height="1344" preload="0" predecode="0"/>
+      <level width="672" height="672" preload="0" predecode="0"/>
+      <level width="336" height="336" preload="1" predecode="1"/>
+      <preview strip="1" color="0x808080"/>
+    </input>
+    <view fovmode="0" pannorth="30.8">
+      <start projection="4" fov="70" pan="0" tilt="0"/>
+      <flyin projection="9" fov="170" pan="0" tilt="-90"/>
+      <min fovpixel="2" pan="0" tilt="-90"/>
+      <max fovfisheye="360" fov="120" fovstereographic="270" scaletofit="1" pan="360" tilt="90"/>
+    </view>
+    <userdata nodeid="node5" title="Cleopatra's Bath" copyright="" author="" heading="30.8" altitude="3.58"/>
+    <hotspots width="0" height="0" wordwrap="0"/>
+    <media/>
+    <transition softedge="0" zoomoutpause="0" blendcolor="0x000000" enabled="0" type="crossdissolve" zoomspeed="2" zoomfov="20" zoomout="0" blendtime="1" zoomin="0"/>
+    <animation useinautorotation="0" syncanimationwithvideo="0"/>
+    <control lockedkeyboard="0" invertcontrol="1" dblclickfullscreen="0" contextfullscreen="0" lockedwheel="0" sensitivity="8" contextprojections="0" simulatemass="1" lockedmouse="0" lockedkeyboardzoom="0" hideabout="1" invertwheel="0" speedwheel="1" rubberband="0"/>
+  </panorama>
+  <masternode>
+    <userdata nodeid="master" title="" heading="0"/>
+  </masternode>
+</tour>

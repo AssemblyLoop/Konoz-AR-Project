@@ -4,7 +4,11 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/cleopatras-path", "destination": "/cleopatras-path/index.html" },
+    { "source": "/cleopatras-path/", "destination": "/cleopatras-path/index.html" },
+    { "source": "/salt-lake", "destination": "/salt-lake/index.html" },
+    { "source": "/salt-lake/", "destination": "/salt-lake/index.html" },
+    { "source": "/((?!cleopatras-path|salt-lake).*)", "destination": "/index.html" }
   ],
   "headers": [
     {

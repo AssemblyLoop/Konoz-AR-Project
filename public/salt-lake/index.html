@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <title>Salt Lake Siwa – 360°</title>
+    <base href="/salt-lake/" />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+        }
+        #pano-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+        /* Suppress all Pano2VR skin / UI overlays */
+        .ggskin_button,
+        .ggskin_hotspot,
+        .ggskin_container,
+        .ggskin_text,
+        .ggskin_menubar,
+        .ggskin_menu,
+        .ggskin_external,
+        .ggskin_svg,
+        [class*="ggskin_menu"],
+        [class*="ggskin_compass"],
+        [class*="ggskin_gyro"],
+        [class*="ggskin_fullscreen"],
+        [class*="ggskin_zoom"],
+        [class*="ggskin_autorotate"],
+        [class*="ggskin_contextmenu"] {
+            display: none !important;
+            visibility: hidden !important;
+            pointer-events: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="pano-container"></div>
+
+    <script type="text/javascript" src="/salt-lake/pano2vr_player.js"></script>
+    <script type="text/javascript">
+        var pano = new pano2vrPlayer("pano-container");
+        pano.readConfigUrlAsync("/salt-lake/pano.xml");
+    </script>
+
+    <noscript><p><b>Please enable JavaScript!</b></p></noscript>
+</body>
+</html>
