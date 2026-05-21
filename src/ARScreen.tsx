@@ -1,6 +1,7 @@
+
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { RefreshCcw, Download, Radio, Camera, X, Info } from 'lucide-react'
+import { RefreshCcw, Download, Radio, Camera, X, Info, Menu, MapPin } from 'lucide-react'
 
 // ── Types ────────────────────────────────────────
 declare global {
@@ -38,6 +39,7 @@ export default function ARScreen({ username }: { username: string }) {
   const [filterIdx, setFilterIdx]   = useState(0)
   const filterIdxRef                = useRef(filterIdx)
   const [showInfo, setShowInfo]     = useState<number | null>(null)
+  const [showDestinations, setShowDestinations] = useState(false)
   const [status, setStatus]         = useState('')
 
   useEffect(() => { filterIdxRef.current = filterIdx }, [filterIdx])
@@ -337,6 +339,87 @@ export default function ARScreen({ username }: { username: string }) {
         paddingLeft: 16, paddingRight: 16, paddingBottom: 12,
         pointerEvents: 'none',
       }}>
+        {/* Destinations Menu */}
+        <div style={{ pointerEvents: 'auto', position: 'relative' }}>
+          <motion.button
+            id="destinations-menu-btn"
+            onClick={() => setShowDestinations(!showDestinations)}
+            className="glass-btn"
+            style={{
+              width: 46, height: 46,
+              border: `1px solid ${SAND_GOLD}22`,
+              boxShadow: `0 4px 16px rgba(0,0,0,0.3)`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+            whileTap={{ scale: 0.88 }}
+            whileHover={{ boxShadow: `0 0 16px ${SAND_GOLD}25, 0 4px 16px rgba(0,0,0,0.3)` }}
+            aria-label="الوجهات"
+          >
+            <MapPin size={18} color={`${SAND_GOLD}cc`} />
+          </motion.button>
+
+          {/* Destinations Dropdown */}
+          <AnimatePresence>
+            {showDestinations && (
+              <motion.div
+                key="destinations-menu"
+                style={{
+                  position: 'absolute', top: '100%', right: 0, marginTop: 12,
+                  background: 'rgba(10, 6, 4, 0.75)',
+                  backdropFilter: 'blur(20px)',
+                  WebkitBackdropFilter: 'blur(20px)',
+                  border: `1px solid ${SAND_GOLD}22`,
+                  borderRadius: 14,
+                  overflow: 'hidden',
+                  minWidth: 240,
+                  boxShadow: `0 20px 50px rgba(0,0,0,0.5)`,
+                  zIndex: 1000,
+                }}
+                initial={{ opacity: 0, scale: 0.92, y: -8 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.92, y: -8 }}
+                transition={{ duration: 0.2 }}
+              >
+                {[
+                  { name: 'سيوة', path: '/siwa', icon: '🏜️' },
+                  { name: 'سيناء', path: '/sinai', icon: '⛰️' },
+                  { name: 'رأس سدر', path: '/ras-sedr', icon: '🌊' },
+                ].map((dest, idx) => (
+                  <motion.button
+                    key={dest.path}
+                    onClick={() => {
+                      setShowDestinations(false)
+                      window.location.href = dest.path
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      border: 'none',
+                      background: idx > 0 ? 'transparent' : 'transparent',
+                      borderTop: idx > 0 ? `1px solid ${SAND_GOLD}15` : 'none',
+                      color: `${SAND_GOLD}cc`,
+                      textAlign: 'right',
+                      fontFamily: 'var(--font-arabic)',
+                      fontSize: 14,
+                      fontWeight: 500,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      justifyContent: 'flex-end',
+                    }}
+                    whileHover={{ background: `rgba(228, 205, 150, 0.08)` }}
+                    whileTap={{ background: `rgba(228, 205, 150, 0.12)` }}
+                  >
+                    <span>{dest.name}</span>
+                    <span style={{ fontSize: 16 }}>{dest.icon}</span>
+                  </motion.button>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
         {/* Greeting */}
         <div style={{ pointerEvents: 'auto', maxWidth: '38%', overflow: 'hidden' }}>
           <motion.div
